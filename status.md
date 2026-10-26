@@ -30,6 +30,8 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 ## Known gaps
 
 - CI (GitHub Actions) builds and runs tests on every push: `.github/workflows/ci.yml`.
+- **Spec rule D2 fails** (feature 1): `discoverable=TRUE` / `True` is not found. The code uses the
+  case-sensitive label selector `discoverable=true`. Waiting for the owner's OK to fix the code.
 - Specs for auth, errors and cluster connection are not agreed yet. So there are no endpoint tests yet.
 - `deploy/rbac.yaml` is an example. It will move into the Helm chart (feature 8).
 
