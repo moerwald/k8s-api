@@ -39,8 +39,8 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
 ## Next step
 
-Feature 4: spec + tests for cluster connection (missing kubeconfig). Or start feature 7/8 (image, Helm).
-After that: feature 7 and 8, so the API can run in a cluster.
+Feature 4: spec + tests for cluster connection (missing kubeconfig).
+Then feature 7 and 8 (image, Helm), so the API can run in a cluster.
 
 ## How to work on this repo
 
