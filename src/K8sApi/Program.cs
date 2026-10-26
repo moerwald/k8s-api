@@ -7,14 +7,17 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------- Kubernetes client ----------
-// In the cluster: use the service account. Local: use ~/.kube/config.
-builder.Services.AddSingleton<IKubernetes>(_ =>
-{
-    var config = KubernetesClientConfiguration.IsInCluster()
-        ? KubernetesClientConfiguration.InClusterConfig()
-        : KubernetesClientConfiguration.BuildConfigFromConfigFile();
-    return new Kubernetes(config);
-});
+// The API connects with a kubeconfig file. Its path is required.
+// The current-context of the file is used. Done here, so a bad config stops the app at startup.
+var kubeconfigPath = builder.Configuration["Kubernetes:KubeconfigPath"];
+if (string.IsNullOrWhiteSpace(kubeconfigPath))
+    throw new InvalidOperationException(
+        "Setting 'Kubernetes:KubeconfigPath' is missing. Set it in appsettings.json or as env variable Kubernetes__KubeconfigPath.");
+if (!File.Exists(kubeconfigPath))
+    throw new FileNotFoundException($"Kubeconfig file not found: '{kubeconfigPath}'.", kubeconfigPath);
+
+var kubeConfig = KubernetesClientConfiguration.BuildConfigFromConfigFile(kubeconfigPath);
+builder.Services.AddSingleton<IKubernetes>(new Kubernetes(kubeConfig));
 
 builder.Services.AddSingleton<IGatewayApiReader, GatewayApiReader>();
 builder.Services.AddSingleton<DiscoverableRouteService>();

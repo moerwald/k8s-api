@@ -47,20 +47,25 @@ Example response:
 
 | Setting | Env variable | Example |
 |---------|--------------|---------|
+| `Kubernetes:KubeconfigPath` (required) | `Kubernetes__KubeconfigPath` | `/etc/k8s-api/kubeconfig` |
 | `Keycloak:Authority` | `Keycloak__Authority` | `https://keycloak.example.com/realms/my-realm` |
 | `Keycloak:Audience` | `Keycloak__Audience` | `k8s-api` |
 
 In Keycloak, the token must have `k8s-api` in its `aud` claim (use an audience mapper on the client).
 
+## Cluster connection
+
+The API connects with a kubeconfig file. It always uses the file's `current-context`.
+If the path is not set or the file does not exist, the API stops at startup with an error.
+
 ## Kubernetes rights
 
-See `deploy/rbac.yaml`: `get` and `list` on `httproutes` and `gateways`.
+The user in the kubeconfig needs `get` and `list` on `httproutes` and `gateways`.
+`deploy/rbac.yaml` shows this for a service account. Change the subject if your kubeconfig uses another user.
 
 ## Run locally
 
 ```bash
 cd src/K8sApi
-dotnet run
+Kubernetes__KubeconfigPath=$HOME/.kube/config dotnet run
 ```
-
-Locally the API uses your `~/.kube/config`. In the cluster it uses its service account.
