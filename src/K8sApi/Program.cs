@@ -44,9 +44,24 @@ builder.Services.AddTransient<IClaimsTransformation, KeycloakRoleClaims>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.Reader, p => p.RequireRole(Policies.Reader));
 
-builder.Services.AddProblemDetails();
+// ---------- Error answers ----------
+// All errors are "problem details" JSON with only title, status and traceId (spec E9, E10).
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
+{
+    var problem = context.ProblemDetails;
+    problem.Type = null;     // ASP.NET adds a link to the HTTP standard. Not wanted.
+    problem.Detail = null;   // Never send internal details to the client.
+    problem.Instance = null;
+
+    // Spec E7: unexpected exceptions get a fixed title. The exception itself is only logged.
+    if (context.Exception is not null)
+        problem.Title = "Internal server error";
+});
 
 var app = builder.Build();
+
+// Spec E7: unexpected exceptions → 500 problem details, logged as Error with the exception.
+app.UseExceptionHandler();
 
 app.UseAuthentication();
 app.UseAuthorization();

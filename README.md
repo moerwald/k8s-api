@@ -43,7 +43,20 @@ Example response:
 
 - `401` no or bad token
 - `403` role `k8s-api-reader` missing
-- `502` Kubernetes API not reachable
+- `502` / `504` / `500` Kubernetes or API errors, see the table below
+
+| Case | Status | Title |
+|------|--------|-------|
+| Kubernetes not reachable | 502 | `Kubernetes API not reachable` |
+| Kubernetes says forbidden (RBAC) | 502 | `Kubernetes API access forbidden` |
+| Kubernetes says unauthorized (kubeconfig) | 502 | `Kubernetes API authentication failed` |
+| Gateway API CRDs not installed | 502 | `Gateway API not installed` |
+| Kubernetes slower than 10 seconds | 504 | `Kubernetes API timeout` |
+| Kubernetes sends data that can't be read | 502 | `Kubernetes API sent invalid data` |
+| Bug in the API | 500 | `Internal server error` |
+
+Error bodies are `application/problem+json` with only `title`, `status` and `traceId`.
+Internal details are only in the log (level Error, same trace id). A client cancel is logged as Information.
 
 ## Configuration
 

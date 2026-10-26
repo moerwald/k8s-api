@@ -95,6 +95,8 @@ Agreed with the owner. Tests: `tests/K8sApi.Tests/HttpRoutes/ErrorRuleTests.cs`.
 | E10 | No internal details in the body: no Kubernetes error text, no stack trace, no cluster URL. Only `title`, `status` and `traceId`. |
 | E11 | Each error (E1–E7) is logged as **Error** with the exception and the same `traceId`. |
 
+Not in the spec yet: other Kubernetes error codes (for example 500, 503). The code answers them with 502 `Kubernetes API not reachable`.
+
 ## Auth errors
 
 Not specified yet. Open questions for the owner:

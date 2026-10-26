@@ -32,7 +32,7 @@ Check the features with automated tests, so changes do not break things.
 - [x] Spec from owner for errors (E1–E11)
 - [x] Endpoint test setup: `ApiFactory` (real API in memory, fake cluster, test login, log capture)
 - [x] Tests for rules E1–E11 (`ErrorRuleTests.cs`)
-- [ ] Code fix so all error tests pass (needs owner's OK)
+- [x] Code fix so all error tests pass
 - [ ] Spec from owner for auth (roles, status codes)
 - [ ] Auth endpoint tests (401, 403, 200)
 - [ ] Spec + tests for cluster connection (missing kubeconfig)
