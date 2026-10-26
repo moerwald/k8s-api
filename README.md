@@ -35,6 +35,9 @@ Example response:
 | Regex path | Skipped |
 | Gateway did not accept the route (status) | Skipped |
 | Same URL from two routes | Shown once, list is sorted |
+| Route gives no URL at all | Hidden. Logged as warning with namespace/name and reason |
+| Domain has no URL at all | Hidden |
+| No discoverable route | `{"domains": []}` |
 
 ### Errors
 
