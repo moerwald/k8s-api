@@ -24,6 +24,7 @@ Login with Keycloak. Install with Zarf and Helm.
 | 7 | Container image (Dockerfile) | Not started | [07](docs/plans/07-container-image.md) |
 | 8 | Helm chart | Not started | [08](docs/plans/08-helm-chart.md) |
 | 9 | Zarf package | Not started | [09](docs/plans/09-zarf-package.md) |
+| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan proposed, open questions) | [10](docs/plans/10-cluster-metrics.md) |
 
 Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
@@ -41,6 +42,8 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
 Feature 4: get the auth spec from the owner (roles, 401/403), then add auth endpoint tests.
 After that: feature 7 and 8, so the API can run in a cluster.
+
+Feature 10: the owner must answer the open questions in the plan before any code is written.
 
 ## How to work on this repo
 
