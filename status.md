@@ -31,6 +31,7 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
 - CI (GitHub Actions) builds and runs tests on every push: `.github/workflows/ci.yml`.
 - Specs for auth, errors and cluster connection are not agreed yet. So there are no endpoint tests yet.
+- `UrlBuilder` no longer uses `yield`. All helper methods return lists. This is a style change only, so the existing tests cover it.
 - `deploy/rbac.yaml` is an example. It will move into the Helm chart (feature 8).
 
 ## Next step

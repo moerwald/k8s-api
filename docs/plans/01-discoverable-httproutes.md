@@ -36,6 +36,7 @@ The agreed spec is `docs/features/01-discoverable-httproutes.md`.
 - [x] Return 502 if Kubernetes is not reachable
 - [x] Document in README
 - [x] Spec tests (see feature 4, `tests/K8sApi.Tests/HttpRoutes/`)
+- [x] Refactor: `UrlBuilder` helper methods return lists instead of using `yield` (no behavior change)
 - [ ] Test against a real cluster
 
 ## Open points

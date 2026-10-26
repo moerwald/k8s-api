@@ -55,10 +55,12 @@ public static class UrlBuilder
         return true;
     }
 
-    private static IEnumerable<string> UrlsForRoute(HttpRoute route, IReadOnlyDictionary<string, Gateway> gateways)
+    private static List<string> UrlsForRoute(HttpRoute route, IReadOnlyDictionary<string, Gateway> gateways)
     {
-        var paths = Paths(route).ToList();
-        if (paths.Count == 0) yield break;
+        var urls = new List<string>();
+
+        var paths = Paths(route);
+        if (paths.Count == 0) return urls;
 
         foreach (var parent in route.Spec.ParentRefs ?? [])
         {
@@ -83,30 +85,34 @@ public static class UrlBuilder
                 foreach (var host in Hostnames(route.Spec.Hostnames, listener.Hostname))
                 {
                     foreach (var path in paths)
-                        yield return $"{scheme}://{host}{portPart}{path}";
+                        urls.Add($"{scheme}://{host}{portPart}{path}");
                 }
             }
         }
+
+        return urls;
     }
 
     /// <summary>
     /// All paths of the route. No match or no path means "/".
     /// Regex paths are skipped, because they are not real URLs.
     /// </summary>
-    private static IEnumerable<string> Paths(HttpRoute route)
+    private static List<string> Paths(HttpRoute route)
     {
+        var paths = new List<string>();
+
         var rules = route.Spec.Rules;
         if (rules is null || rules.Count == 0)
         {
-            yield return "/";
-            yield break;
+            paths.Add("/");
+            return paths;
         }
 
         foreach (var rule in rules)
         {
             if (rule.Matches is null || rule.Matches.Count == 0)
             {
-                yield return "/";
+                paths.Add("/");
                 continue;
             }
 
@@ -116,9 +122,11 @@ public static class UrlBuilder
                 if (type == "RegularExpression") continue;
 
                 var value = match.Path?.Value;
-                yield return string.IsNullOrEmpty(value) ? "/" : value;
+                paths.Add(string.IsNullOrEmpty(value) ? "/" : value);
             }
         }
+
+        return paths;
     }
 
     private static bool IsAccepted(HttpRoute route, ParentReference parent, string gwNamespace)
@@ -138,16 +146,20 @@ public static class UrlBuilder
         return false;
     }
 
-    private static IEnumerable<Listener> MatchingListeners(Gateway gateway, ParentReference parent, string routeNamespace)
+    private static List<Listener> MatchingListeners(Gateway gateway, ParentReference parent, string routeNamespace)
     {
+        var listeners = new List<Listener>();
+
         foreach (var l in gateway.Spec.Listeners ?? [])
         {
             if (l.Protocol is not ("HTTP" or "HTTPS")) continue;
             if (parent.SectionName is not null && l.Name != parent.SectionName) continue;
             if (parent.Port is not null && l.Port != parent.Port) continue;
             if (!AllowsRoute(l, gateway.Metadata.Namespace, routeNamespace)) continue;
-            yield return l;
+            listeners.Add(l);
         }
+
+        return listeners;
     }
 
     private static bool AllowsRoute(Listener l, string gatewayNamespace, string routeNamespace)
@@ -170,7 +182,7 @@ public static class UrlBuilder
     /// Hostnames that really reach this route through this listener.
     /// Wildcard results (*.example.com) are skipped, because they are not real URLs.
     /// </summary>
-    private static IEnumerable<string> Hostnames(List<string>? routeHosts, string? listenerHost)
+    private static List<string> Hostnames(List<string>? routeHosts, string? listenerHost)
     {
         var candidates = new List<string>();
 
@@ -194,7 +206,8 @@ public static class UrlBuilder
         return candidates
             .Select(h => h.ToLowerInvariant())
             .Where(h => !h.StartsWith('*'))
-            .Distinct();
+            .Distinct()
+            .ToList();
     }
 
     /// <summary>
