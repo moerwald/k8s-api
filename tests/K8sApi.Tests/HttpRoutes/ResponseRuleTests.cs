@@ -49,6 +49,45 @@ public class ResponseRuleTests
     }
 
     [Fact]
+    public async Task R4_no_discoverable_route_gives_empty_domains_list()
+    {
+        var response = await Run(Cluster());
+
+        Assert.NotNull(response.Domains);
+        Assert.Empty(response.Domains);
+    }
+
+    [Fact]
+    public async Task R5_domain_with_only_routes_without_url_is_hidden()
+    {
+        var response = await Run(Cluster(
+            Route("wild", Labels(domain: "hidden"), ["*.example.com"]),
+            Route("shop", Labels(domain: "shop"), ["shop.example.com"])));
+
+        var domain = Assert.Single(response.Domains);
+        Assert.Equal("shop", domain.Domain);
+    }
+
+    [Fact]
+    public async Task R5_route_without_url_is_hidden_other_routes_of_domain_stay()
+    {
+        var response = await Run(Cluster(
+            Route("wild", Labels(domain: "shop"), ["*.example.com"]),
+            Route("cart", Labels(domain: "shop"), ["shop.example.com"], [Prefix("/cart")])));
+
+        var domain = Assert.Single(response.Domains);
+        Assert.Equal(new[] { "https://shop.example.com/cart" }, domain.Urls);
+    }
+
+    [Fact]
+    public async Task R5_only_routes_without_url_gives_empty_domains_list()
+    {
+        var response = await Run(Cluster(Route("wild", Labels(domain: "shop"), ["*.example.com"])));
+
+        Assert.Empty(response.Domains);
+    }
+
+    [Fact]
     public void R3_json_uses_camel_case_names()
     {
         // ASP.NET Core minimal APIs serialize with the "Web" defaults.

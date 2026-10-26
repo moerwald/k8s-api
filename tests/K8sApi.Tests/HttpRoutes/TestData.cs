@@ -1,4 +1,6 @@
 using K8sApi.HttpRoutes;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace K8sApi.Tests.HttpRoutes;
 
@@ -89,8 +91,10 @@ public static class TestData
     }
 
     /// <summary>Runs the feature like the endpoint does and returns the answer.</summary>
-    public static Task<DiscoverableRoutesResponse> Run(FakeGatewayApiReader cluster) =>
-        new DiscoverableRouteService(cluster).GetAsync(CancellationToken.None);
+    public static Task<DiscoverableRoutesResponse> Run(
+        FakeGatewayApiReader cluster, ILogger<DiscoverableRouteService>? logger = null) =>
+        new DiscoverableRouteService(cluster, logger ?? NullLogger<DiscoverableRouteService>.Instance)
+            .GetAsync(CancellationToken.None);
 
     public static IReadOnlyList<string> AllUrls(DiscoverableRoutesResponse response) =>
         response.Domains.SelectMany(d => d.Urls).ToList();

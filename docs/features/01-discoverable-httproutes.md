@@ -40,6 +40,8 @@ So rule D2 cannot be done with the label selector alone.
 | R1 | Routes are grouped by the value of the `domain` label. One entry per domain. |
 | R2 | Domains are sorted A–Z. URLs inside a domain are sorted A–Z. |
 | R3 | The JSON uses the names `domains`, `domain` and `urls` (camelCase). |
+| R4 | No discoverable route at all → `{"domains": []}`. |
+| R5 | A discoverable route that gives no URL is hidden. A domain without any URL is hidden too. |
 
 ## How a URL is built
 
@@ -56,6 +58,13 @@ Form: `scheme://hostname[:port]path`
 | U7 | The Gateway did not accept the route (no `Accepted=True` in the route status) → no URL. |
 | U8 | The same URL from two routes is shown only once. |
 
+## Logging
+
+| Id | Rule |
+|----|------|
+| L1 | A discoverable route that gives no URL is logged as a **Warning**. The log has the route namespace/name and the reason. Example: `HTTPRoute shop/cart (domain shop) gives no URL: hostname is a wildcard (*.example.com)` |
+| L2 | A route that gives at least one URL is not logged as a warning. |
+
 ## Errors
 
 Not specified yet. Open questions for the owner:
@@ -63,8 +72,3 @@ Not specified yet. Open questions for the owner:
 - Which role is needed, where is it in the token (realm roles, client roles)?
 - Status codes for: no token, bad or expired token, token without the role, broken role data.
 - Kubernetes not reachable, or Kubernetes says "forbidden": which status code, which body?
-
-## Other open questions
-
-- No discoverable route at all: is `{"domains": []}` correct?
-- A discoverable route that gives no URL (for example only a wildcard hostname): should its domain be shown with an empty `urls` list, or not shown?
