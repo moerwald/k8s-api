@@ -1,5 +1,7 @@
 # K8s API
 
+[![CI](https://github.com/moerwald/k8s-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/moerwald/k8s-api/actions/workflows/ci.yml)
+
 A C# REST API to query Kubernetes objects and (later) send commands.
 Login is done with Keycloak. Install is planned with Zarf and Helm.
 

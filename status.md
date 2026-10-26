@@ -30,6 +30,7 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 ## Known gaps
 
 - CI (GitHub Actions) builds and runs tests on every push: `.github/workflows/ci.yml`.
+- The README shows a CI badge. Green = build and all tests passed on `main`. Red = something failed.
 - Error spec E1–E11 is agreed and tested with endpoint tests (`tests/K8sApi.Tests/Api/ApiFactory.cs`).
 - Specs for auth and cluster connection are not agreed yet.
 - Other Kubernetes error codes (500, 503, ...) are not in the spec. The code answers them with 502 `Kubernetes API not reachable`.
