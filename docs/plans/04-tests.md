@@ -13,6 +13,7 @@ Check the features with automated tests, so changes do not break things.
 - If a test fails because the code does not match the spec: report it to the owner. Do not change code without the owner's OK.
 - Framework: **xUnit**, with plain `Assert` (no extra assertion library).
 - CI: GitHub Actions runs build + tests on every push and pull request (`.github/workflows/ci.yml`).
+- Badge: the README shows the CI status of `main` (green = all tests passed).
 
 ## Setup
 
