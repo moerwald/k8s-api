@@ -31,26 +31,66 @@ public sealed class DiscoverableRouteService(IGatewayApiReader reader, ILogger<D
 
 public static class DiscoverableRouteEndpoints
 {
+    /// <summary>Spec E5: the API waits at most this long for Kubernetes.</summary>
+    public static readonly TimeSpan KubernetesTimeout = TimeSpan.FromSeconds(10);
+
     public static void MapDiscoverableRoutes(this IEndpointRouteBuilder app)
     {
         app.MapGet("/api/v1/httproutes/discoverable", async (
                 DiscoverableRouteService service,
                 ILogger<DiscoverableRouteService> log,
-                CancellationToken ct) =>
+                CancellationToken requestAborted) =>
             {
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(requestAborted);
+                timeout.CancelAfter(KubernetesTimeout);
+
                 try
                 {
-                    return Results.Ok(await service.GetAsync(ct));
+                    return Results.Ok(await service.GetAsync(timeout.Token));
                 }
-                catch (Exception ex) when (ex is k8s.Autorest.HttpOperationException or HttpRequestException)
+                catch (OperationCanceledException) when (requestAborted.IsCancellationRequested)
                 {
-                    log.LogError(ex, "Could not read Gateway API objects from Kubernetes");
-                    return Results.Problem(
-                        title: "Kubernetes API not available",
-                        statusCode: StatusCodes.Status502BadGateway);
+                    // Spec E8: the client went away. Not an error.
+                    log.LogInformation("Request cancelled by client");
+                    return Results.Empty;
                 }
+                catch (OperationCanceledException ex) when (timeout.IsCancellationRequested)
+                {
+                    log.LogError(ex, "Kubernetes API did not answer within {Seconds} seconds",
+                        KubernetesTimeout.TotalSeconds);
+                    return Problem(StatusCodes.Status504GatewayTimeout, "Kubernetes API timeout");
+                }
+                catch (k8s.Autorest.HttpOperationException ex)
+                {
+                    var status = ex.Response?.StatusCode;
+                    log.LogError(ex, "Kubernetes API answered with status {StatusCode}", status);
+                    return Problem(StatusCodes.Status502BadGateway, status switch
+                    {
+                        System.Net.HttpStatusCode.Forbidden => "Kubernetes API access forbidden",
+                        System.Net.HttpStatusCode.Unauthorized => "Kubernetes API authentication failed",
+                        // Listing HTTPRoutes or Gateways gives 404 when the Gateway API CRDs are missing.
+                        System.Net.HttpStatusCode.NotFound => "Gateway API not installed",
+                        // Other Kubernetes errors (for example 500, 503) are not in the spec yet.
+                        _ => "Kubernetes API not reachable",
+                    });
+                }
+                catch (HttpRequestException ex)
+                {
+                    log.LogError(ex, "Kubernetes API not reachable");
+                    return Problem(StatusCodes.Status502BadGateway, "Kubernetes API not reachable");
+                }
+                catch (System.Text.Json.JsonException ex)
+                {
+                    log.LogError(ex, "Kubernetes API sent data that could not be read");
+                    return Problem(StatusCodes.Status502BadGateway, "Kubernetes API sent invalid data");
+                }
+                // Everything else (spec E7) is handled by the global exception handler in Program.cs.
             })
             .RequireAuthorization(Policies.Reader)
             .WithName("GetDiscoverableHttpRoutes");
     }
+
+    // Spec E9/E10: only title and status. traceId is added by the problem details service.
+    private static IResult Problem(int status, string title) =>
+        Results.Problem(title: title, statusCode: status);
 }

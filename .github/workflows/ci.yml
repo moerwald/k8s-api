@@ -41,15 +41,22 @@ jobs:
         run: |
           import glob, xml.etree.ElementTree as ET
           ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          def esc(s): return s.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+          passed, failed = 0, []
           for f in glob.glob("TestResults/**/*.trx", recursive=True):
               root = ET.parse(f).getroot()
               for r in root.iterfind(".//t:UnitTestResult", ns):
+                  if r.get("outcome") == "Passed":
+                      passed += 1
                   if r.get("outcome") != "Failed":
                       continue
+                  failed.append(r.get("testName"))
                   msg = r.find(".//t:ErrorInfo/t:Message", ns)
                   text = (msg.text or "").strip() if msg is not None else ""
-                  text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
-                  print(f"::error title=Test failed: {r.get('testName')}::{text}")
+                  print(f"::error title=Test failed: {r.get('testName')}::{esc(text)}")
+          # GitHub shows only 10 errors per step, so also write one summary with all failed tests.
+          summary = f"Passed: {passed}, Failed: {len(failed)}\n" + "\n".join(sorted(failed))
+          print(f"::notice title=Test summary::{esc(summary)}")
 
       - name: Upload test results
         if: always()

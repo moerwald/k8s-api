@@ -12,11 +12,23 @@ public sealed class FakeGatewayApiReader : IGatewayApiReader
     public List<HttpRoute> Routes { get; } = new();
     public List<Gateway> Gateways { get; } = new();
 
-    public Task<List<HttpRoute>> ListHttpRoutesAsync(string labelSelector, CancellationToken ct) =>
-        Task.FromResult(Routes.Where(r => Matches(labelSelector, r.Metadata.Labels)).ToList());
+    /// <summary>
+    /// Runs at the start of every call. Use it to make the fake cluster fail or be slow,
+    /// for example: <c>OnCall = _ => throw new HttpRequestException("down")</c>.
+    /// </summary>
+    public Func<CancellationToken, Task>? OnCall { get; set; }
 
-    public Task<List<Gateway>> ListGatewaysAsync(CancellationToken ct) =>
-        Task.FromResult(Gateways.ToList());
+    public async Task<List<HttpRoute>> ListHttpRoutesAsync(string labelSelector, CancellationToken ct)
+    {
+        if (OnCall is not null) await OnCall(ct);
+        return Routes.Where(r => Matches(labelSelector, r.Metadata.Labels)).ToList();
+    }
+
+    public async Task<List<Gateway>> ListGatewaysAsync(CancellationToken ct)
+    {
+        if (OnCall is not null) await OnCall(ct);
+        return Gateways.ToList();
+    }
 
     // Supports the equality-based selector forms: "k=v", "k==v", "k!=v", "k", "!k".
     private static bool Matches(string? selector, Dictionary<string, string>? labels)
