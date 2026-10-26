@@ -1,22 +1,38 @@
 # Feature 4: Automated tests
 
-Status: **Not started**
+Status: **In progress**
 
 ## Goal
 
-Check the logic with automated tests, so changes do not break things.
+Check the features with automated tests, so changes do not break things.
 
-## Plan
+## Rules (decided with the owner)
 
-1. Add test project `tests/K8sApi.Tests` (xUnit).
-2. Unit tests for `UrlBuilder`: one test per rule in the README table
-   (scheme, port, no hostname, wildcard, no path, regex path, not accepted, duplicates).
-3. Unit tests for `KeycloakRoleClaims` (roles found, no roles, bad JSON).
-4. Endpoint tests with `WebApplicationFactory` and a fake `IGatewayApiReader`:
-   401 without token, 403 without role, 200 with role, 502 when Kubernetes fails.
-5. Optional: CI pipeline (GitHub Actions) that runs `dotnet build` and `dotnet test`.
+- Tests are written from the **spec**, not from the code. The owner gives the spec.
+- Each feature has a spec in `docs/features/`. Each test name starts with the spec rule id (for example `U4_...`).
+- If a test fails because the code does not match the spec: report it to the owner. Do not change code without the owner's OK.
+- Framework: **xUnit**, with plain `Assert` (no extra assertion library).
+- CI: GitHub Actions runs build + tests on every push and pull request (`.github/workflows/ci.yml`).
+
+## Setup
+
+- Test project: `tests/K8sApi.Tests` (references `src/K8sApi`).
+- `FakeGatewayApiReader` is an in-memory cluster. It applies label selectors like the real Kubernetes API
+  (case-sensitive), so tests see what a real cluster would return.
+- `TestData` builds Gateways, listeners and HTTPRoutes with short code.
+
+## Steps
+
+- [x] Agree on framework and CI with owner
+- [x] Spec for feature 1: which routes, answer shape, URL rules (`docs/features/01-discoverable-httproutes.md`)
+- [x] Test project + fake cluster + test helpers
+- [x] Tests for rules D1–D6, R1–R3, U1–U8
+- [x] GitHub Actions pipeline
+- [ ] Spec from owner for auth (roles, status codes) and errors (Kubernetes down, forbidden)
+- [ ] Endpoint tests with `WebApplicationFactory` (401, 403, 200, 502)
+- [ ] Spec + tests for cluster connection (missing kubeconfig)
+- [ ] New features (5, 6, ...): spec first, then tests
 
 ## Open questions
 
-- xUnit or another test framework?
-- Add GitHub Actions now or later?
+See the "open questions" part of `docs/features/01-discoverable-httproutes.md`.

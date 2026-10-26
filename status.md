@@ -1,9 +1,10 @@
 # Project status
 
 Read this file first in a new session. It shows what is done and what is next.
-Each feature has a plan in `docs/plans/`. Update this file when a feature changes.
+Each feature has a plan in `docs/plans/` and (when agreed) a spec in `docs/features/`.
+Update this file when a feature changes.
 
-Last update: 2026-10-26 (commit `8f3330e`)
+Last update: 2026-10-26
 
 ## Goal
 
@@ -14,10 +15,10 @@ Login with Keycloak. Install with Zarf and Helm.
 
 | # | Feature | Status | Plan |
 |---|---------|--------|------|
-| 1 | Discoverable HTTPRoutes (`GET /api/v1/httproutes/discoverable`) | Done (no tests yet) | [01](docs/plans/01-discoverable-httproutes.md) |
+| 1 | Discoverable HTTPRoutes (`GET /api/v1/httproutes/discoverable`) | Done, tests added (see feature 4) | [01](docs/plans/01-discoverable-httproutes.md) |
 | 2 | Keycloak authentication (JWT, realm roles) | Done (reader role only) | [02](docs/plans/02-keycloak-auth.md) |
 | 3 | Cluster connection with kubeconfig | Done | [03](docs/plans/03-cluster-connection.md) |
-| 4 | Automated tests | Not started | [04](docs/plans/04-tests.md) |
+| 4 | Automated tests + CI | In progress | [04](docs/plans/04-tests.md) |
 | 5 | Query Kubernetes objects (deployments, pods, ...) | Not started | [05](docs/plans/05-query-objects.md) |
 | 6 | Commands: restart deployment | Not started | [06](docs/plans/06-restart-deployment.md) |
 | 7 | Container image (Dockerfile) | Not started | [07](docs/plans/07-container-image.md) |
@@ -28,15 +29,19 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
 ## Known gaps
 
-- The build was not checked in a CI pipeline. There is no CI yet.
+- CI (GitHub Actions) builds and runs tests on every push: `.github/workflows/ci.yml`.
+- Specs for auth, errors and cluster connection are not agreed yet. So there are no endpoint tests yet.
 - `deploy/rbac.yaml` is an example. It will move into the Helm chart (feature 8).
 
 ## Next step
 
-Not decided yet. Suggestion: feature 4 (tests), then feature 7 and 8, so the API can run in a cluster.
+Feature 4: get the auth and error specs from the owner, then add endpoint tests.
+After that: feature 7 and 8, so the API can run in a cluster.
 
 ## How to work on this repo
 
 - Ask before changing code. Only change what the owner allows.
 - For a new feature: add a plan in `docs/plans/`, add a row above, then build it.
+- Tests are written from the spec (`docs/features/`), not from the code. Ask the owner for the spec first.
+- If a test shows the code does not match the spec, report it. Do not fix code without the owner's OK.
 - Keep answers and docs in simple English.

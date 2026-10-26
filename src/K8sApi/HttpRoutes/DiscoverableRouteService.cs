@@ -4,8 +4,10 @@ namespace K8sApi.HttpRoutes;
 
 public sealed class DiscoverableRouteService(IGatewayApiReader reader)
 {
-    // discoverable must be "true", and the key "domain" must exist (any value).
-    public const string LabelSelector = "discoverable=true,domain";
+    // Only ask Kubernetes for routes that HAVE both labels.
+    // The value check ("true" in any case, domain not empty) is done in UrlBuilder,
+    // because Kubernetes label selectors are case-sensitive.
+    public const string LabelSelector = "discoverable,domain";
 
     public async Task<DiscoverableRoutesResponse> GetAsync(CancellationToken ct)
     {
