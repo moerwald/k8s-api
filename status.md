@@ -30,13 +30,15 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 ## Known gaps
 
 - CI (GitHub Actions) builds and runs tests on every push: `.github/workflows/ci.yml`.
-- Specs for auth, errors and cluster connection are not agreed yet. So there are no endpoint tests yet.
+- Error spec E1–E11 is agreed and tested with endpoint tests (`tests/K8sApi.Tests/Api/ApiFactory.cs`).
+- Specs for auth and cluster connection are not agreed yet.
+- Other Kubernetes error codes (500, 503, ...) are not in the spec. The code answers them with 502 `Kubernetes API not reachable`.
 - `UrlBuilder` no longer uses `yield`. All helper methods return lists. This is a style change only, so the existing tests cover it.
 - `deploy/rbac.yaml` is an example. It will move into the Helm chart (feature 8).
 
 ## Next step
 
-Feature 4: get the auth and error specs from the owner, then add endpoint tests.
+Feature 4: get the auth spec from the owner (roles, 401/403), then add auth endpoint tests.
 After that: feature 7 and 8, so the API can run in a cluster.
 
 ## How to work on this repo
