@@ -29,11 +29,15 @@ Check the features with automated tests, so changes do not break things.
 - [x] Tests for rules D1–D6, R1–R3, U1–U8
 - [x] GitHub Actions pipeline
 - [x] Tests for rules R4, R5 (empty result, hide routes without URL) and L1, L2 (logging)
-- [ ] Spec from owner for auth (roles, status codes) and errors (Kubernetes down, forbidden)
-- [ ] Endpoint tests with `WebApplicationFactory` (401, 403, 200, 502)
+- [x] Spec from owner for errors (E1–E11)
+- [x] Endpoint test setup: `ApiFactory` (real API in memory, fake cluster, test login, log capture)
+- [x] Tests for rules E1–E11 (`ErrorRuleTests.cs`)
+- [ ] Code fix so all error tests pass (needs owner's OK)
+- [ ] Spec from owner for auth (roles, status codes)
+- [ ] Auth endpoint tests (401, 403, 200)
 - [ ] Spec + tests for cluster connection (missing kubeconfig)
 - [ ] New features (5, 6, ...): spec first, then tests
 
 ## Open questions
 
-See the "Errors" part of `docs/features/01-discoverable-httproutes.md`.
+See the "Auth errors" part of `docs/features/01-discoverable-httproutes.md`.

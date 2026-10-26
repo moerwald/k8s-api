@@ -67,8 +67,37 @@ Form: `scheme://hostname[:port]path`
 
 ## Errors
 
+Agreed with the owner. Tests: `tests/K8sApi.Tests/HttpRoutes/ErrorRuleTests.cs`.
+
+### Kubernetes errors
+
+| Id | Case | Status | Title |
+|----|------|--------|-------|
+| E1 | Kubernetes not reachable (network down, DNS) | 502 | `Kubernetes API not reachable` |
+| E2 | Kubernetes says "forbidden" (missing RBAC) | 502 | `Kubernetes API access forbidden` |
+| E3 | Kubernetes says "unauthorized" (bad kubeconfig credentials) | 502 | `Kubernetes API authentication failed` |
+| E4 | Gateway API not installed in the cluster (no HTTPRoute CRD) | 502 | `Gateway API not installed` |
+| E5 | Kubernetes is too slow: the API waits at most **10 seconds** | 504 | `Kubernetes API timeout` |
+| E6 | Kubernetes sends data the API can't read (broken JSON) | 502 | `Kubernetes API sent invalid data` |
+
+### Other errors
+
+| Id | Case | Rule |
+|----|------|------|
+| E7 | Bug in the API (unexpected exception) | 500, title `Internal server error` |
+| E8 | The client cancels the request | Log as **Information**. No error log, no answer body. |
+
+### Body and logging (all errors)
+
+| Id | Rule |
+|----|------|
+| E9 | Body is "problem details" JSON (`application/problem+json`) with `title`, `status` and `traceId`. |
+| E10 | No internal details in the body: no Kubernetes error text, no stack trace, no cluster URL. Only `title`, `status` and `traceId`. |
+| E11 | Each error (E1–E7) is logged as **Error** with the exception and the same `traceId`. |
+
+## Auth errors
+
 Not specified yet. Open questions for the owner:
 
 - Which role is needed, where is it in the token (realm roles, client roles)?
 - Status codes for: no token, bad or expired token, token without the role, broken role data.
-- Kubernetes not reachable, or Kubernetes says "forbidden": which status code, which body?
