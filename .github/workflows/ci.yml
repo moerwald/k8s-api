@@ -1,0 +1,42 @@
+name: CI
+
+# Builds the API and runs all tests on every push and pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore tests/K8sApi.Tests/K8sApi.Tests.csproj
+
+      - name: Build
+        run: dotnet build tests/K8sApi.Tests/K8sApi.Tests.csproj --no-restore --configuration Release
+
+      - name: Test
+        run: >
+          dotnet test tests/K8sApi.Tests/K8sApi.Tests.csproj
+          --no-build --configuration Release
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults

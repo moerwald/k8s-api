@@ -1,6 +1,6 @@
 # Feature 1: Discoverable HTTPRoutes
 
-Status: **Done** (no tests yet)
+Status: **Done** (tests added, see spec)
 
 ## Goal
 
@@ -18,6 +18,7 @@ Return all URLs of HTTPRoutes that are marked as discoverable, grouped by domain
 4. Group by the value of the `domain` label. Sort and remove duplicates.
 
 Rules (wildcards, regex paths, accepted status, ports) are listed in `README.md`.
+The agreed spec is `docs/features/01-discoverable-httproutes.md`.
 
 ## Code
 
@@ -32,7 +33,7 @@ Rules (wildcards, regex paths, accepted status, ports) are listed in `README.md`
 - [x] Build URLs from listeners and hostnames
 - [x] Return 502 if Kubernetes is not reachable
 - [x] Document in README
-- [ ] Unit tests for `UrlBuilder` (see feature 4)
+- [x] Spec tests (see feature 4, `tests/K8sApi.Tests/HttpRoutes/`)
 - [ ] Test against a real cluster
 
 ## Open points
