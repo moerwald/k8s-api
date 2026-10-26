@@ -6,6 +6,7 @@ namespace K8sApi.HttpRoutes;
 /// </summary>
 public static class UrlBuilder
 {
+    public const string DiscoverableLabel = "discoverable";
     public const string DomainLabel = "domain";
     private const string GatewayGroup = "gateway.networking.k8s.io";
 
@@ -17,9 +18,7 @@ public static class UrlBuilder
 
         foreach (var route in routes)
         {
-            if (route.Metadata.Labels is null ||
-                !route.Metadata.Labels.TryGetValue(DomainLabel, out var domain) ||
-                string.IsNullOrWhiteSpace(domain))
+            if (!IsDiscoverable(route.Metadata.Labels, out var domain))
                 continue;
 
             if (!result.TryGetValue(domain, out var urls))
@@ -35,6 +34,25 @@ public static class UrlBuilder
             .ToList();
 
         return new DiscoverableRoutesResponse(domains);
+    }
+
+    /// <summary>
+    /// Spec D1–D6: "discoverable" is "true" (any case) and "domain" is not empty or only spaces.
+    /// </summary>
+    private static bool IsDiscoverable(Dictionary<string, string>? labels, out string domain)
+    {
+        domain = "";
+        if (labels is null) return false;
+
+        if (!labels.TryGetValue(DiscoverableLabel, out var discoverable) ||
+            !string.Equals(discoverable, "true", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!labels.TryGetValue(DomainLabel, out var value) || string.IsNullOrWhiteSpace(value))
+            return false;
+
+        domain = value;
+        return true;
     }
 
     private static IEnumerable<string> UrlsForRoute(HttpRoute route, IReadOnlyDictionary<string, Gateway> gateways)

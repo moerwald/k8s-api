@@ -12,7 +12,9 @@ Return all URLs of HTTPRoutes that are marked as discoverable, grouped by domain
 
 ## How it works
 
-1. Read HTTPRoutes in all namespaces with label selector `discoverable=true,domain`.
+1. Read HTTPRoutes in all namespaces with label selector `discoverable,domain` (both labels exist).
+   Then keep only routes where `discoverable` is `true` (any case) and `domain` is not empty.
+   This is done in C#, because label selectors are case-sensitive.
 2. Read all Gateways.
 3. Build URLs `scheme://hostname[:port]/path` from route + Gateway listener.
 4. Group by the value of the `domain` label. Sort and remove duplicates.

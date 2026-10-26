@@ -8,7 +8,8 @@ Login is done with Keycloak. Install is planned with Zarf and Helm.
 `GET /api/v1/httproutes/discoverable`
 
 - Needs a Keycloak token with the realm role `k8s-api-reader`.
-- Finds all HTTPRoutes in all namespaces with label selector `discoverable=true,domain`.
+- Finds all HTTPRoutes in all namespaces with the label `discoverable=true` (any case, e.g. `TRUE`)
+  and a non-empty `domain` label.
 - Groups them by the value of the `domain` label.
 - Returns absolute URLs: `scheme://hostname[:port]/path`.
 
