@@ -1,6 +1,6 @@
 # Feature 10: Collect cluster metrics every 30 seconds
 
-Status: **Not started** (proposal, waiting for the owner's decisions)
+Status: **Not started** (proposal, some open questions answered)
 
 ## Goal
 
@@ -97,7 +97,7 @@ If you want this, a real time-series system (Prometheus) is usually the better t
 Typed columns for the important values, plus raw JSON for "maybe later" data.
 Good for flexibility, but the table grows fast.
 
-**Recommendation:** Option A. The metrics list is small and fixed, and EF Core works best with typed tables.
+**Decision (owner, 2026-10-26):** Option A. The metrics list is small and fixed, and EF Core works best with typed tables.
 
 ## 3. Background polling every 30 seconds
 
@@ -147,18 +147,19 @@ Why this design:
 
 Example: 10 nodes, 200 deployments, poll every 30 s = 2,880 polls per day.
 
-| Table | Rows per day | Rows in 30 days |
-|-------|-------------|-----------------|
-| node_metrics | ~29,000 | ~0.9 million |
-| workload_metrics | ~576,000 | ~17 million |
+| Table | Rows per day (= max rows in the DB) |
+|-------|-------------------------------------|
+| metric_snapshots | 2,880 |
+| node_metrics | ~29,000 |
+| workload_metrics | ~576,000 |
 
-So we need a **retention** rule:
+**Decision (owner, 2026-10-26): keep data for max. 1 day.**
 
-- Setting `Metrics:RetentionDays` (proposal: 14 or 30).
-- Once per hour the service deletes old data with `ExecuteDeleteAsync`, in batches (no huge locks).
+- Setting `Metrics:Retention` = `1.00:00:00` (24 hours).
+- Every 10 minutes the service deletes snapshots older than 24 hours with `ExecuteDeleteAsync`, in batches (no huge locks).
   The FK uses `ON DELETE CASCADE`, so deleting snapshots deletes the child rows.
-- Later, if needed: Postgres table partitioning by day (drop a whole day fast),
-  or TimescaleDB, or 5-minute summary tables for long-term data.
+- Index on `metric_snapshots.collected_at` makes the delete fast.
+- With only 1 day of data the tables stay small. No partitioning, TimescaleDB or summary tables needed.
 
 ## 5. More than one API replica
 
@@ -189,7 +190,7 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
   "Enabled": true,
   "Interval": "00:00:30",
   "PollTimeout": "00:00:20",
-  "RetentionDays": 30
+  "Retention": "1.00:00:00"
 },
 "ConnectionStrings": {
   "MetricsDb": "Host=...;Database=k8s_metrics;Username=...;Password=..."
@@ -211,7 +212,7 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 - [ ] `IClusterMetricsReader` + implementation (Kubernetes calls)
 - [ ] `MetricsCollector` (map + save)
 - [ ] `MetricsPollingService` (timer, timeout, error handling)
-- [ ] Retention cleanup
+- [ ] Retention cleanup (delete data older than 24 h)
 - [ ] Multi-replica protection (option from section 5)
 - [ ] RBAC in `deploy/rbac.yaml` (later Helm chart, feature 8)
 - [ ] Tests (see below), README
@@ -227,8 +228,8 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 
 1. Which metrics do you need? Is the list in section 1 right? Pod-level CPU/memory too?
 2. Is metrics-server installed in the target cluster?
-3. Data model: Option A ok?
-4. How long to keep data (`RetentionDays`)? Do you need long-term summaries?
+3. ~~Data model: Option A ok?~~ **Answered:** Option A.
+4. ~~How long to keep data?~~ **Answered:** max. 1 day, no long-term summaries.
 5. Where does Postgres come from: existing DB, or part of the Zarf package / Helm chart?
 6. Replicas: which option from section 5?
 7. Polling inside the API process, or a separate worker deployment?
