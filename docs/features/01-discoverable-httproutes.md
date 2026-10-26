@@ -99,7 +99,4 @@ Not in the spec yet: other Kubernetes error codes (for example 500, 503). The co
 
 ## Auth errors
 
-Not specified yet. Open questions for the owner:
-
-- Which role is needed, where is it in the token (realm roles, client roles)?
-- Status codes for: no token, bad or expired token, token without the role, broken role data.
+See `docs/features/02-keycloak-auth.md` (rules A1–A12). This endpoint needs the client role `reader`.

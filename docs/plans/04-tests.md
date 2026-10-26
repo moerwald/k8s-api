@@ -33,11 +33,11 @@ Check the features with automated tests, so changes do not break things.
 - [x] Endpoint test setup: `ApiFactory` (real API in memory, fake cluster, test login, log capture)
 - [x] Tests for rules E1–E11 (`ErrorRuleTests.cs`)
 - [x] Code fix so all error tests pass
-- [ ] Spec from owner for auth (roles, status codes)
-- [ ] Auth endpoint tests (401, 403, 200)
+- [x] Spec from owner for auth (A1–A12, `docs/features/02-keycloak-auth.md`)
+- [x] Auth endpoint tests with real JWT check and test-signed tokens (`TestTokens`)
 - [ ] Spec + tests for cluster connection (missing kubeconfig)
 - [ ] New features (5, 6, ...): spec first, then tests
 
 ## Open questions
 
-See the "Auth errors" part of `docs/features/01-discoverable-httproutes.md`.
+None right now.
