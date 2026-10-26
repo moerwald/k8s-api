@@ -28,6 +28,7 @@ Check the features with automated tests, so changes do not break things.
 - [x] Test project + fake cluster + test helpers
 - [x] Tests for rules D1–D6, R1–R3, U1–U8
 - [x] GitHub Actions pipeline
+- [x] Tests for rules R4, R5 (empty result, hide routes without URL) and L1, L2 (logging)
 - [ ] Spec from owner for auth (roles, status codes) and errors (Kubernetes down, forbidden)
 - [ ] Endpoint tests with `WebApplicationFactory` (401, 403, 200, 502)
 - [ ] Spec + tests for cluster connection (missing kubeconfig)
@@ -35,4 +36,4 @@ Check the features with automated tests, so changes do not break things.
 
 ## Open questions
 
-See the "open questions" part of `docs/features/01-discoverable-httproutes.md`.
+See the "Errors" part of `docs/features/01-discoverable-httproutes.md`.

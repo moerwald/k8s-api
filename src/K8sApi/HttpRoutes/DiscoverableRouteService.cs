@@ -2,7 +2,7 @@ using K8sApi.Auth;
 
 namespace K8sApi.HttpRoutes;
 
-public sealed class DiscoverableRouteService(IGatewayApiReader reader)
+public sealed class DiscoverableRouteService(IGatewayApiReader reader, ILogger<DiscoverableRouteService> log)
 {
     // Only ask Kubernetes for routes that HAVE both labels.
     // The value check ("true" in any case, domain not empty) is done in UrlBuilder,
@@ -16,7 +16,16 @@ public sealed class DiscoverableRouteService(IGatewayApiReader reader)
         var gatewaysTask = reader.ListGatewaysAsync(ct);
         await Task.WhenAll(routesTask, gatewaysTask);
 
-        return UrlBuilder.Build(routesTask.Result, gatewaysTask.Result);
+        var result = UrlBuilder.Build(routesTask.Result, gatewaysTask.Result);
+
+        // Spec L1: routes without URL are hidden in the answer, so log them for the operator.
+        foreach (var r in result.RoutesWithoutUrl)
+        {
+            log.LogWarning("HTTPRoute {Namespace}/{Name} (domain {Domain}) gives no URL: {Reason}",
+                r.Namespace, r.Name, r.Domain, r.Reason);
+        }
+
+        return result.Response;
     }
 }
 

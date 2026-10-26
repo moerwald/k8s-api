@@ -10,21 +10,33 @@ public static class UrlBuilder
     public const string DomainLabel = "domain";
     private const string GatewayGroup = "gateway.networking.k8s.io";
 
-    public static DiscoverableRoutesResponse Build(IEnumerable<HttpRoute> routes, IEnumerable<Gateway> gateways)
+    public static UrlBuildResult Build(IEnumerable<HttpRoute> routes, IEnumerable<Gateway> gateways)
     {
         var gatewayByKey = gateways.ToDictionary(g => Key(g.Metadata.Namespace, g.Metadata.Name));
 
         var result = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+        var withoutUrl = new List<RouteWithoutUrl>();
 
         foreach (var route in routes)
         {
             if (!IsDiscoverable(route.Metadata.Labels, out var domain))
                 continue;
 
+            var reasons = new List<string>();
+            var routeUrls = UrlsForRoute(route, gatewayByKey, reasons).ToList();
+
+            // Spec R5 + L1: hide the route, but report why it has no URL.
+            if (routeUrls.Count == 0)
+            {
+                var reason = reasons.Count == 0 ? "unknown reason" : string.Join("; ", reasons.Distinct());
+                withoutUrl.Add(new RouteWithoutUrl(route.Metadata.Namespace, route.Metadata.Name, domain, reason));
+                continue;
+            }
+
             if (!result.TryGetValue(domain, out var urls))
                 result[domain] = urls = new SortedSet<string>(StringComparer.Ordinal);
 
-            foreach (var url in UrlsForRoute(route, gatewayByKey))
+            foreach (var url in routeUrls)
                 urls.Add(url);
         }
 
@@ -33,7 +45,7 @@ public static class UrlBuilder
             .Select(kv => new DomainUrls(kv.Key, kv.Value.ToList()))
             .ToList();
 
-        return new DiscoverableRoutesResponse(domains);
+        return new UrlBuildResult(new DiscoverableRoutesResponse(domains), withoutUrl);
     }
 
     /// <summary>
@@ -55,32 +67,64 @@ public static class UrlBuilder
         return true;
     }
 
-    private static IEnumerable<string> UrlsForRoute(HttpRoute route, IReadOnlyDictionary<string, Gateway> gateways)
+    /// <summary>
+    /// All URLs of one route. When a part gives no URL, the reason is added to "reasons".
+    /// </summary>
+    private static IEnumerable<string> UrlsForRoute(
+        HttpRoute route, IReadOnlyDictionary<string, Gateway> gateways, List<string> reasons)
     {
         var paths = Paths(route).ToList();
-        if (paths.Count == 0) yield break;
+        if (paths.Count == 0)
+        {
+            reasons.Add("all paths are regular expressions");
+            yield break;
+        }
 
-        foreach (var parent in route.Spec.ParentRefs ?? [])
+        var parents = route.Spec.ParentRefs ?? [];
+        if (parents.Count == 0)
+        {
+            reasons.Add("route has no parentRefs");
+            yield break;
+        }
+
+        foreach (var parent in parents)
         {
             // Only Gateways are parents we understand.
             if ((parent.Group ?? GatewayGroup) != GatewayGroup || (parent.Kind ?? "Gateway") != "Gateway")
+            {
+                reasons.Add($"parent {parent.Kind} {parent.Name} is not a Gateway");
                 continue;
+            }
 
             var gwNamespace = parent.Namespace ?? route.Metadata.Namespace;
+            var gwKey = Key(gwNamespace, parent.Name);
 
             // Use only parents where the Gateway controller accepted the route.
             if (!IsAccepted(route, parent, gwNamespace))
+            {
+                reasons.Add($"not accepted by Gateway {gwKey}");
                 continue;
+            }
 
-            if (!gateways.TryGetValue(Key(gwNamespace, parent.Name), out var gateway))
+            if (!gateways.TryGetValue(gwKey, out var gateway))
+            {
+                reasons.Add($"Gateway {gwKey} not found");
                 continue;
+            }
 
-            foreach (var listener in MatchingListeners(gateway, parent, route.Metadata.Namespace))
+            var listeners = MatchingListeners(gateway, parent, route.Metadata.Namespace).ToList();
+            if (listeners.Count == 0)
+            {
+                reasons.Add($"no matching HTTP/HTTPS listener on Gateway {gwKey}");
+                continue;
+            }
+
+            foreach (var listener in listeners)
             {
                 var scheme = listener.Protocol == "HTTPS" ? "https" : "http";
                 var portPart = IsDefaultPort(scheme, listener.Port) ? "" : $":{listener.Port}";
 
-                foreach (var host in Hostnames(route.Spec.Hostnames, listener.Hostname))
+                foreach (var host in Hostnames(route.Spec.Hostnames, listener.Hostname, reasons))
                 {
                     foreach (var path in paths)
                         yield return $"{scheme}://{host}{portPart}{path}";
@@ -170,13 +214,14 @@ public static class UrlBuilder
     /// Hostnames that really reach this route through this listener.
     /// Wildcard results (*.example.com) are skipped, because they are not real URLs.
     /// </summary>
-    private static IEnumerable<string> Hostnames(List<string>? routeHosts, string? listenerHost)
+    private static List<string> Hostnames(List<string>? routeHosts, string? listenerHost, List<string> reasons)
     {
         var candidates = new List<string>();
 
         if (routeHosts is null || routeHosts.Count == 0)
         {
             if (!string.IsNullOrEmpty(listenerHost)) candidates.Add(listenerHost);
+            else reasons.Add("no hostname on route or listener");
         }
         else if (string.IsNullOrEmpty(listenerHost))
         {
@@ -189,12 +234,17 @@ public static class UrlBuilder
                 var specific = MoreSpecificIfMatch(rh, listenerHost);
                 if (specific is not null) candidates.Add(specific);
             }
+            if (candidates.Count == 0)
+                reasons.Add($"route hostnames do not match listener hostname {listenerHost}");
         }
 
-        return candidates
-            .Select(h => h.ToLowerInvariant())
-            .Where(h => !h.StartsWith('*'))
-            .Distinct();
+        var result = new List<string>();
+        foreach (var h in candidates.Select(h => h.ToLowerInvariant()).Distinct())
+        {
+            if (h.StartsWith('*')) reasons.Add($"hostname is a wildcard ({h})");
+            else result.Add(h);
+        }
+        return result;
     }
 
     /// <summary>
@@ -223,3 +273,9 @@ public static class UrlBuilder
 
     private static string Key(string ns, string name) => $"{ns}/{name}";
 }
+
+/// <summary>A discoverable route that gives no URL, and why.</summary>
+public sealed record RouteWithoutUrl(string Namespace, string Name, string Domain, string Reason);
+
+/// <summary>The answer for the API, plus the routes that were hidden because they have no URL.</summary>
+public sealed record UrlBuildResult(DiscoverableRoutesResponse Response, IReadOnlyList<RouteWithoutUrl> RoutesWithoutUrl);
