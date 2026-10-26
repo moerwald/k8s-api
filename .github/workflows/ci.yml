@@ -34,6 +34,23 @@ jobs:
           --logger "trx;LogFileName=test-results.trx"
           --results-directory TestResults
 
+      # Shows every failed test as an error annotation on the run and the pull request.
+      - name: Show failed tests
+        if: always()
+        shell: python
+        run: |
+          import glob, xml.etree.ElementTree as ET
+          ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+          for f in glob.glob("TestResults/**/*.trx", recursive=True):
+              root = ET.parse(f).getroot()
+              for r in root.iterfind(".//t:UnitTestResult", ns):
+                  if r.get("outcome") != "Failed":
+                      continue
+                  msg = r.find(".//t:ErrorInfo/t:Message", ns)
+                  text = (msg.text or "").strip() if msg is not None else ""
+                  text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+                  print(f"::error title=Test failed: {r.get('testName')}::{text}")
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
