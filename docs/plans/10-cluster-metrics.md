@@ -99,6 +99,8 @@ Good for flexibility, but the table grows fast.
 
 **Decision (owner, 2026-10-26):** Option A. The metrics list is small and fixed, and EF Core works best with typed tables.
 
+**Decision (owner, 2026-10-26):** `cluster_metrics` stays a separate table (1:1 with `metric_snapshots`). It is not merged into the snapshot row.
+
 ## 3. Background polling every 30 seconds
 
 Use a .NET `BackgroundService` with a `PeriodicTimer`. No extra library (Quartz, Hangfire) is needed.
