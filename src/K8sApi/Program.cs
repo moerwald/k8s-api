@@ -25,6 +25,12 @@ builder.Services.AddSingleton<DiscoverableRouteService>();
 // ---------- Keycloak authentication ----------
 var keycloak = builder.Configuration.GetSection("Keycloak");
 
+// Spec A1: the Keycloak client "k8s-api" is the audience and also holds the client roles.
+var keycloakClientId = keycloak["Audience"];
+if (string.IsNullOrWhiteSpace(keycloakClientId))
+    throw new InvalidOperationException(
+        "Setting 'Keycloak:Audience' is missing. Set it in appsettings.json or as env variable Keycloak__Audience.");
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -36,10 +42,25 @@ builder.Services
         options.MapInboundClaims = false;
         options.TokenValidationParameters.NameClaimType = "preferred_username";
         options.TokenValidationParameters.RoleClaimType = KeycloakRoleClaims.RoleClaimType;
+
+        // Spec A12: 401 and 403 answers are problem JSON like all other errors.
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse(); // skip the default empty 401
+                context.Response.Headers.WWWAuthenticate = "Bearer";
+                await WriteProblem(context.HttpContext, StatusCodes.Status401Unauthorized, "Unauthorized");
+            },
+            OnForbidden = context =>
+                WriteProblem(context.HttpContext, StatusCodes.Status403Forbidden, "Forbidden"),
+        };
     });
 
-// Keycloak puts realm roles in "realm_access.roles". This copies them into normal role claims.
-builder.Services.AddTransient<IClaimsTransformation, KeycloakRoleClaims>();
+// Keycloak puts client roles in "resource_access.<client>.roles". This copies the roles of our client
+// into normal role claims (spec A2–A4, A10).
+builder.Services.AddTransient<IClaimsTransformation>(sp =>
+    new KeycloakRoleClaims(keycloakClientId, sp.GetRequiredService<ILogger<KeycloakRoleClaims>>()));
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.Reader, p => p.RequireRole(Policies.Reader));
@@ -71,3 +92,14 @@ app.MapGet("/healthz", () => Results.Ok("ok")).AllowAnonymous();
 app.MapDiscoverableRoutes();
 
 app.Run();
+
+static async Task WriteProblem(HttpContext http, int status, string title)
+{
+    http.Response.StatusCode = status;
+    var problems = http.RequestServices.GetRequiredService<IProblemDetailsService>();
+    await problems.WriteAsync(new ProblemDetailsContext
+    {
+        HttpContext = http,
+        ProblemDetails = { Status = status, Title = title },
+    });
+}

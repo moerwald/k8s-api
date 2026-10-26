@@ -7,7 +7,7 @@ Login is done with Keycloak. Install is planned with Zarf and Helm.
 
 `GET /api/v1/httproutes/discoverable`
 
-- Needs a Keycloak token with the realm role `k8s-api-reader`.
+- Needs a Keycloak token with the **client role** `reader` on client `k8s-api`.
 - Finds all HTTPRoutes in all namespaces with the label `discoverable=true` (any case, e.g. `TRUE`)
   and a non-empty `domain` label.
 - Groups them by the value of the `domain` label.
@@ -41,8 +41,8 @@ Example response:
 
 ### Errors
 
-- `401` no or bad token
-- `403` role `k8s-api-reader` missing
+- `401` no, bad or expired token (title `Unauthorized`)
+- `403` client role `reader` missing, or broken role data in the token (title `Forbidden`)
 - `502` / `504` / `500` Kubernetes or API errors, see the table below
 
 | Case | Status | Title |
@@ -68,7 +68,14 @@ Internal details are only in the log (level Error, same trace id). A client canc
 | `Keycloak:Authority` | `Keycloak__Authority` | `https://keycloak.example.com/realms/my-realm` |
 | `Keycloak:Audience` | `Keycloak__Audience` | `k8s-api` |
 
-In Keycloak, the token must have `k8s-api` in its `aud` claim (use an audience mapper on the client).
+## Keycloak setup
+
+- Client `k8s-api`. Its id is also the audience (`Keycloak:Audience`).
+- The token must have `k8s-api` in its `aud` claim (use an audience mapper on the client).
+- Client role `reader` on client `k8s-api` for read endpoints. Give it to users or groups.
+- Realm roles (for example the old `k8s-api-reader`) are **not** used.
+
+Spec: `docs/features/02-keycloak-auth.md`.
 
 ## Cluster connection
 

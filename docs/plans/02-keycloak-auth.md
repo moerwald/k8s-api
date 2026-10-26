@@ -1,6 +1,6 @@
 # Feature 2: Keycloak authentication
 
-Status: **In progress** (spec agreed, code must move to client roles)
+Status: **Done** (reader role; operator role comes with feature 6)
 
 ## Goal
 
@@ -12,11 +12,13 @@ Roles decide what a user may do.
 `docs/features/02-keycloak-auth.md` (rules A1–A12), agreed with the owner.
 Read endpoints need the **client role** `reader` on client `k8s-api`. Commands later need `operator`.
 
-## How it works (today)
+## How it works
 
 - JWT bearer check with `Keycloak:Authority` and `Keycloak:Audience`.
-- `KeycloakRoleClaims` copies `realm_access.roles` into normal role claims.
-- Policy `k8s-api-reader` protects all read endpoints.
+- `KeycloakRoleClaims` copies `resource_access.k8s-api.roles` into role claims (type `k8s-api-role`).
+  Broken role data → no roles and a warning in the log.
+- Policy `reader` protects all read endpoints.
+- 401/403 answers are problem JSON (`Unauthorized`, `Forbidden`).
 
 ## Code
 
@@ -26,11 +28,11 @@ Read endpoints need the **client role** `reader` on client `k8s-api`. Commands l
 ## Steps
 
 - [x] JWT validation against Keycloak
-- [x] Map realm roles
+- [x] Map client roles (realm roles no longer used)
 - [x] Reader policy
 - [x] Spec A1–A12 agreed with owner
 - [x] Tests for A1–A12 (`tests/K8sApi.Tests/Auth/AuthRuleTests.cs`)
-- [ ] Code: client role `reader` instead of realm role, problem JSON for 401/403, warning for broken role data (needs owner's OK)
+- [x] Code: client role `reader` instead of realm role, problem JSON for 401/403, warning for broken role data
 - [ ] Operator policy for commands (needed by feature 6)
 
 ## Open points
