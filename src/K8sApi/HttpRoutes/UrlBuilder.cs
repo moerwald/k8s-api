@@ -23,7 +23,7 @@ public static class UrlBuilder
                 continue;
 
             var reasons = new List<string>();
-            var routeUrls = UrlsForRoute(route, gatewayByKey, reasons).ToList();
+            var routeUrls = UrlsForRoute(route, gatewayByKey, reasons);
 
             // Spec R5 + L1: hide the route, but report why it has no URL.
             if (routeUrls.Count == 0)
@@ -70,21 +70,23 @@ public static class UrlBuilder
     /// <summary>
     /// All URLs of one route. When a part gives no URL, the reason is added to "reasons".
     /// </summary>
-    private static IEnumerable<string> UrlsForRoute(
+    private static List<string> UrlsForRoute(
         HttpRoute route, IReadOnlyDictionary<string, Gateway> gateways, List<string> reasons)
     {
-        var paths = Paths(route).ToList();
+        var urls = new List<string>();
+
+        var paths = Paths(route);
         if (paths.Count == 0)
         {
             reasons.Add("all paths are regular expressions");
-            yield break;
+            return urls;
         }
 
         var parents = route.Spec.ParentRefs ?? [];
         if (parents.Count == 0)
         {
             reasons.Add("route has no parentRefs");
-            yield break;
+            return urls;
         }
 
         foreach (var parent in parents)
@@ -112,7 +114,7 @@ public static class UrlBuilder
                 continue;
             }
 
-            var listeners = MatchingListeners(gateway, parent, route.Metadata.Namespace).ToList();
+            var listeners = MatchingListeners(gateway, parent, route.Metadata.Namespace);
             if (listeners.Count == 0)
             {
                 reasons.Add($"no matching HTTP/HTTPS listener on Gateway {gwKey}");
@@ -127,30 +129,34 @@ public static class UrlBuilder
                 foreach (var host in Hostnames(route.Spec.Hostnames, listener.Hostname, reasons))
                 {
                     foreach (var path in paths)
-                        yield return $"{scheme}://{host}{portPart}{path}";
+                        urls.Add($"{scheme}://{host}{portPart}{path}");
                 }
             }
         }
+
+        return urls;
     }
 
     /// <summary>
     /// All paths of the route. No match or no path means "/".
     /// Regex paths are skipped, because they are not real URLs.
     /// </summary>
-    private static IEnumerable<string> Paths(HttpRoute route)
+    private static List<string> Paths(HttpRoute route)
     {
+        var paths = new List<string>();
+
         var rules = route.Spec.Rules;
         if (rules is null || rules.Count == 0)
         {
-            yield return "/";
-            yield break;
+            paths.Add("/");
+            return paths;
         }
 
         foreach (var rule in rules)
         {
             if (rule.Matches is null || rule.Matches.Count == 0)
             {
-                yield return "/";
+                paths.Add("/");
                 continue;
             }
 
@@ -160,9 +166,11 @@ public static class UrlBuilder
                 if (type == "RegularExpression") continue;
 
                 var value = match.Path?.Value;
-                yield return string.IsNullOrEmpty(value) ? "/" : value;
+                paths.Add(string.IsNullOrEmpty(value) ? "/" : value);
             }
         }
+
+        return paths;
     }
 
     private static bool IsAccepted(HttpRoute route, ParentReference parent, string gwNamespace)
@@ -182,16 +190,20 @@ public static class UrlBuilder
         return false;
     }
 
-    private static IEnumerable<Listener> MatchingListeners(Gateway gateway, ParentReference parent, string routeNamespace)
+    private static List<Listener> MatchingListeners(Gateway gateway, ParentReference parent, string routeNamespace)
     {
+        var listeners = new List<Listener>();
+
         foreach (var l in gateway.Spec.Listeners ?? [])
         {
             if (l.Protocol is not ("HTTP" or "HTTPS")) continue;
             if (parent.SectionName is not null && l.Name != parent.SectionName) continue;
             if (parent.Port is not null && l.Port != parent.Port) continue;
             if (!AllowsRoute(l, gateway.Metadata.Namespace, routeNamespace)) continue;
-            yield return l;
+            listeners.Add(l);
         }
+
+        return listeners;
     }
 
     private static bool AllowsRoute(Listener l, string gatewayNamespace, string routeNamespace)
