@@ -183,7 +183,10 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 | a) Kubernetes Lease (leader election) | KubernetesClient has `LeaderElector` with `LeaseLock`. Only the leader polls. | Needs RBAC on `leases`. Recommended. |
 | b) Postgres advisory lock | `pg_try_advisory_lock` before each poll. | Simple, no extra RBAC. |
 | ~~c) Separate worker deployment~~ | Not chosen (owner decision 2026-10-27: polling runs inside the API). | |
-| d) Only 1 replica | Nothing to build. | Fine for the start. |
+| **d) Only 1 replica** | Nothing to build. | **Chosen (owner decision 2026-10-27).** |
+
+**Decision:** the API runs with 1 replica. The Helm chart sets `replicas: 1`.
+If more replicas are needed later, add option a) (Lease) first, or data will be saved twice.
 
 ## 6. Database setup
 
@@ -264,7 +267,6 @@ The polling service logs the error and saves nothing in that time. The next poll
 
 - `""` (core): `nodes`, `pods` → `get`, `list`
 - `apps`: `deployments` → `get`, `list`
-- `coordination.k8s.io`: `leases` → `get`, `create`, `update` (only for option 5a)
 
 ## 9. Steps
 
@@ -275,7 +277,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 - [ ] `MetricsCollector` (map + save)
 - [ ] `MetricsPollingService` (timer, timeout, error handling)
 - [ ] Retention cleanup (delete data older than 24 h)
-- [ ] Multi-replica protection (option from section 5)
+- [ ] Helm chart: `replicas: 1` (no leader election needed)
 - [ ] RBAC in `deploy/rbac.yaml` (later Helm chart, feature 8)
 - [ ] Tests (see below), README
 
@@ -296,7 +298,7 @@ The polling service logs the error and saves nothing in that time. The next poll
    - 5a. ~~Who creates the CNPG `Cluster`?~~ **Answered:** our Helm chart.
    - 5b. ~~How many instances?~~ **Answered:** 1. Storage class and size: Helm values (default: cluster default class, `2Gi`).
    - 5c. ~~Backups?~~ **Answered:** no.
-6. Replicas: which option from section 5?
+6. ~~Replicas?~~ **Answered:** 1 replica, no leader election.
 7. ~~Polling inside the API or separate worker?~~ **Answered:** inside the API process (`BackgroundService`).
 8. Should the API also offer REST endpoints to read the stored metrics (with the reader role)? If yes, that is a separate feature.
 9. Should a failing DB make the pod "not ready", or only be logged?
