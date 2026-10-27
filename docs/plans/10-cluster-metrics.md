@@ -197,8 +197,12 @@ If more replicas are needed later, add option a) (Lease) first, or data will be 
   (e.g. with `EFCore.NamingConventions`), so plain SQL is easy.
 - Connection: see section 6a (CNPG).
 - `DateTime` values in UTC → Postgres `timestamptz`.
-- Migrations: do **not** run `Database.Migrate()` at startup when there are several replicas.
-  Better: an EF migration bundle or an idempotent SQL script, run by a Helm hook Job or init container.
+- Migrations: **Decision (owner, 2026-10-27):** the API runs them itself (`Database.MigrateAsync()`). No Helm Job.
+  - This is safe because there is only 1 replica (section 5).
+  - It runs at the start of `MetricsPollingService`, before the first poll, not in `Program.cs`.
+    So the API starts and the other endpoints work even when the DB is not ready yet.
+  - If the DB is not reachable, log a warning and try again at the next tick. No poll until the migration worked.
+  - The CNPG `owner` user owns the database, so it has the rights to create tables.
 - Health: add a DB check to the readiness probe? (see open questions)
 
 ## 6a. PostgreSQL with the CNPG operator
@@ -274,7 +278,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 
 - [ ] Owner answers the open questions
 - [ ] Write the spec in `docs/features/10-cluster-metrics.md` with the owner
-- [ ] Add EF Core + Npgsql, `MetricsDbContext`, entities, first migration
+- [ ] Add EF Core + Npgsql, `MetricsDbContext`, entities, first migration (applied by the API at startup)
 - [ ] `IClusterMetricsReader` + implementation (Kubernetes calls)
 - [ ] `MetricsCollector` (map + save)
 - [ ] `MetricsPollingService` (timer, timeout, error handling)

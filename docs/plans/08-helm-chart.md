@@ -16,7 +16,7 @@ Install the API in a cluster with Helm.
 5. Liveness/readiness probe on `/healthz`.
 6. Optional: HTTPRoute or Ingress to expose the API.
 7. From feature 10: a CNPG `Cluster` (`k8s-api-db`, 1 instance, no backups), env variables from Secret `k8s-api-db-app`,
-   and a Job (Helm hook) that runs the EF migrations. Values: storage class, storage size. See [plan 10](10-cluster-metrics.md).
+   (the API runs the EF migrations itself, no Job). Values: storage class, storage size. See [plan 10](10-cluster-metrics.md).
 
 ## Open questions
 
