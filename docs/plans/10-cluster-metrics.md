@@ -15,16 +15,27 @@ This file is a proposal. No code is written yet. The open questions at the end m
 |-------|--------|--------|
 | Cluster | Number of nodes, ready nodes | `nodes` (core/v1) |
 | Cluster | Pods per phase (Running, Pending, Failed, ...) | `pods` (core/v1) |
-| Node | CPU usage (millicores), memory usage (bytes) | `metrics.k8s.io` (needs metrics-server) |
 | Node | CPU and memory allocatable | `nodes` → `status.allocatable` |
+| Node | CPU and memory **requested** (sum of the requests of all pods on the node) | `pods` → `spec.containers[].resources.requests` |
 | Node | Ready condition, pod count | `nodes`, `pods` |
 | Workload | Deployment: desired / ready / available replicas | `deployments` (apps/v1) |
 | Workload | Sum of container restarts of the pods | `pods` → `containerStatuses.restartCount` |
 
-The KubernetesClient library already has `GetKubernetesNodesMetricsAsync()` and
-`GetKubernetesPodsMetricsAsync()` for `metrics.k8s.io`.
+**Decision (owner, 2026-10-27): metrics-server is not installed.** So there is no real CPU/memory **usage**
+(`metrics.k8s.io` does not exist). All data comes from the normal Kubernetes API.
 
-Start small (cluster + nodes + deployments). Pod-level usage creates many rows (see section 4), so add it later only if needed.
+Instead of usage we store **requested** CPU/memory per node. Compared with allocatable, this shows how
+"full" a node is for the scheduler. It does not show how busy the node really is.
+
+Ways to get real usage later (not part of this feature):
+
+| Way | Note |
+|-----|------|
+| Install metrics-server | Easiest. Then add `cpu_usage_millicores` / `memory_usage_bytes` with a new migration. |
+| Kubelet `/stats/summary` via the API server proxy | Needs RBAC `nodes/proxy`. This right is very powerful (it can reach the kubelet API, also exec). Not recommended. |
+| Read from Prometheus, if it exists | Then this feature would mostly duplicate Prometheus. |
+
+Start small (cluster + nodes + deployments).
 
 ## 2. Data model – options
 
@@ -64,10 +75,10 @@ metric_snapshots 1 ──── n node_metrics
 | snapshot_id | bigint | FK |
 | node_name | text | Index (node_name, snapshot_id) |
 | ready | bool | |
-| cpu_usage_millicores | bigint, null | null if metrics-server is missing |
 | cpu_allocatable_millicores | bigint | |
-| memory_usage_bytes | bigint, null | |
+| cpu_requested_millicores | bigint | Sum of the requests of running/pending pods on the node |
 | memory_allocatable_bytes | bigint | |
+| memory_requested_bytes | bigint | |
 | pod_count | int | |
 
 **workload_metrics**
@@ -179,11 +190,53 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 - NuGet: `Npgsql.EntityFrameworkCore.PostgreSQL` (version matching .NET 10 / EF Core 10).
 - `MetricsDbContext` with the 4 entities. Table and column names in `snake_case`
   (e.g. with `EFCore.NamingConventions`), so plain SQL is easy.
-- Connection string: `ConnectionStrings:MetricsDb` (env `ConnectionStrings__MetricsDb`), from a Kubernetes Secret.
+- Connection: see section 6a (CNPG).
 - `DateTime` values in UTC → Postgres `timestamptz`.
 - Migrations: do **not** run `Database.Migrate()` at startup when there are several replicas.
   Better: an EF migration bundle or an idempotent SQL script, run by a Helm hook Job or init container.
 - Health: add a DB check to the readiness probe? (see open questions)
+
+## 6a. PostgreSQL with the CNPG operator
+
+**Decision (owner, 2026-10-27):** the cluster runs the CloudNativePG (CNPG) operator. The database is a CNPG `Cluster`.
+
+Proposal: the Helm chart of the API (feature 8) creates a small CNPG `Cluster` resource:
+
+```yaml
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: k8s-api-db
+spec:
+  instances: 1            # 1 day of metrics only; 2–3 for high availability
+  storage:
+    size: 2Gi
+  bootstrap:
+    initdb:
+      database: k8s_metrics
+      owner: k8s_api
+```
+
+What CNPG gives us:
+
+- Service `k8s-api-db-rw` → always the primary. The API connects to this one.
+- Secret `k8s-api-db-app` with the keys `host`, `port`, `dbname`, `username`, `password` (and `uri`).
+- The `owner` user owns the database, so it can also run the EF migrations. No superuser needed.
+- TLS is on by default. CA is in Secret `k8s-api-db-ca`.
+
+How the API gets the connection:
+
+- The Deployment maps the Secret keys to env variables (`secretKeyRef`), e.g. `MetricsDb__Host`, `MetricsDb__Port`,
+  `MetricsDb__Database`, `MetricsDb__Username`, `MetricsDb__Password`.
+- The app builds the connection string with `NpgsqlConnectionStringBuilder`.
+  (We do not use the `uri` key: it has the `postgresql://` format, which Npgsql does not read directly.)
+- TLS: `SslMode=Require` at the start. Optional later: mount `k8s-api-db-ca` and use `VerifyFull`.
+- CNPG changes the password? The pod gets the new Secret only after a restart. Fine for now.
+
+Zarf (feature 9): the Postgres image (`ghcr.io/cloudnative-pg/postgresql:<version>`) must be in the Zarf package,
+because CNPG pulls it for the database pod.
+
+Backups: not needed. We keep only 1 day of data, and losing it is not critical (proposal, see open questions).
 
 ## 7. Settings (proposal)
 
@@ -194,8 +247,13 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
   "PollTimeout": "00:00:20",
   "Retention": "1.00:00:00"
 },
-"ConnectionStrings": {
-  "MetricsDb": "Host=...;Database=k8s_metrics;Username=...;Password=..."
+"MetricsDb": {
+  "Host": "k8s-api-db-rw",
+  "Port": 5432,
+  "Database": "k8s_metrics",
+  "Username": "from secret",
+  "Password": "from secret",
+  "SslMode": "Require"
 }
 ```
 
@@ -203,7 +261,6 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 
 - `""` (core): `nodes`, `pods` → `get`, `list`
 - `apps`: `deployments` → `get`, `list`
-- `metrics.k8s.io`: `nodes` (and later `pods`) → `get`, `list`
 - `coordination.k8s.io`: `leases` → `get`, `create`, `update` (only for option 5a)
 
 ## 9. Steps
@@ -221,18 +278,21 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 
 ## 10. Tests
 
-- Collector: fake `IClusterMetricsReader` → check the saved rows (CPU quantity parsing, null when metrics-server is missing, failed poll).
+- Collector: fake `IClusterMetricsReader` → check the saved rows (CPU/memory quantity parsing like `250m`, `1Gi`; sum of requests per node; finished pods not counted; failed poll).
 - Database: real Postgres with Testcontainers (EF InMemory does not behave like Postgres).
 - Polling service: interval, timeout and "error does not stop the loop" with a short interval.
 - Retention: old rows are deleted, new rows stay.
 
 ## Open questions
 
-1. Which metrics do you need? Is the list in section 1 right? Pod-level CPU/memory too?
-2. Is metrics-server installed in the target cluster?
+1. Which metrics do you need? Is the list in section 1 right (with "requested" instead of real usage)?
+2. ~~Is metrics-server installed?~~ **Answered:** no. We store requested CPU/memory instead of usage.
 3. ~~Data model: Option A ok?~~ **Answered:** Option A.
 4. ~~How long to keep data?~~ **Answered:** max. 1 day, no long-term summaries.
-5. Where does Postgres come from: existing DB, or part of the Zarf package / Helm chart?
+5. ~~Where does Postgres come from?~~ **Answered:** CNPG operator is in the cluster.
+   - 5a. Should our Helm chart create the CNPG `Cluster` (proposal), or does one already exist that we should use?
+   - 5b. How many instances (1 or 3)? Storage class and size?
+   - 5c. Backups needed? (proposal: no)
 6. Replicas: which option from section 5?
 7. Polling inside the API process, or a separate worker deployment?
 8. Should the API also offer REST endpoints to read the stored metrics (with the reader role)? If yes, that is a separate feature.

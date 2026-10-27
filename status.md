@@ -24,7 +24,7 @@ Login with Keycloak. Install with Zarf and Helm.
 | 7 | Container image (Dockerfile) | Not started | [07](docs/plans/07-container-image.md) |
 | 8 | Helm chart | Not started | [08](docs/plans/08-helm-chart.md) |
 | 9 | Zarf package | Not started | [09](docs/plans/09-zarf-package.md) |
-| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan: Option A data model, keep data 1 day; other questions still open) | [10](docs/plans/10-cluster-metrics.md) |
+| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan: data model A, keep data 1 day, no metrics-server → requested CPU/memory, Postgres via CNPG; other questions open) | [10](docs/plans/10-cluster-metrics.md) |
 
 Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
