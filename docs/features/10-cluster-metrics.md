@@ -1,6 +1,6 @@
 # Feature 10: Cluster metrics every 30 seconds – Specification
 
-Status: **Agreed** with the owner (2026-10-27). **Change in review:** M1–M5 (migration at startup, owner decision 2026-10-27). Points marked **(open)** need an OK.
+Status: **Agreed** with the owner (2026-10-27). Changed and agreed the same day: M1–M5 (migration at startup).
 
 This is the **spec** (what the feature must do). Plan and background: [plan 10](../plans/10-cluster-metrics.md).
 Tests will check these rules. Each test name starts with the rule id (for example `C3_...`).
@@ -84,7 +84,7 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 |----|------|
 | M1 | At startup, **before the web server starts**, the API applies all missing EF Core migrations (in `Program.cs`, before `app.Run()`). Changed by owner decision 2026-10-27. |
 | M2 | The web server (all endpoints, also `/healthz` and `/readyz`) is only reachable after the migration worked. So a "ready" pod always has the current tables. |
-| M3 | DB not reachable → log a **Warning** and try again every **5 s**, for at most `Metrics:MigrationTimeout` (default **2 min**). Then the app stops with an **Error** log and exit code ≠ 0. Kubernetes restarts the pod. **(open: 5 s / 2 min ok?)** |
+| M3 | DB not reachable → log a **Warning** and try again every **5 s**, for at most `Metrics:MigrationTimeout` (default **2 min**). Then the app stops with an **Error** log and exit code ≠ 0. Kubernetes restarts the pod. |
 | M4 | Migration fails for another reason (e.g. SQL error, missing rights) → no retry. The app stops at once with an **Error** log and exit code ≠ 0. |
 | M5 | Helm: a `startupProbe` on `/healthz` waits at least `MigrationTimeout` (e.g. 30 × 5 s), so the liveness probe does not kill the pod while it waits for the DB. |
 
@@ -130,4 +130,4 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 2. ~~W4: owner references or label selector?~~ **Answered:** owner references (needs `replicasets`).
 3. ~~H4: `/readyz` without DB check when disabled?~~ **Answered:** yes.
 4. ~~Final OK~~ **Answered:** all rules agreed (2026-10-27).
-5. M3: retry every 5 s for at most 2 min, then stop the app? **(open)**
+5. ~~M3: retry 5 s / max 2 min?~~ **Answered:** yes (2026-10-27).
