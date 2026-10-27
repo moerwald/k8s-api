@@ -1,6 +1,6 @@
 # Feature 10: Cluster metrics every 30 seconds – Specification
 
-Status: **Agreed** with the owner (2026-10-27).
+Status: **Agreed** with the owner (2026-10-27). Changed and agreed the same day: M1–M5 (migration at startup).
 
 This is the **spec** (what the feature must do). Plan and background: [plan 10](../plans/10-cluster-metrics.md).
 Tests will check these rules. Each test name starts with the rule id (for example `C3_...`).
@@ -17,11 +17,11 @@ There is no REST endpoint in this feature (that is feature 11).
 | Id | Rule |
 |----|------|
 | P1 | Polling runs inside the API process as a background service. |
-| P2 | The first poll starts right after the API has started (and after the migration, see M1). Then one poll every `Metrics:Interval` (default **30 s**). |
+| P2 | The first poll starts right after the API has started (the migration is already done, see M1). Then one poll every `Metrics:Interval` (default **30 s**). |
 | P3 | Never two polls at the same time. If a poll takes longer than the interval, the missed ticks are skipped (no catch-up). |
 | P4 | A poll may take at most `Metrics:PollTimeout` (default **20 s**). After that it is stopped and counts as failed (title `Kubernetes API timeout`). |
 | P5 | A failed poll never stops the service. The next tick polls again. |
-| P6 | `Metrics:Enabled = false` → no polling, no migration, no cleanup. The rest of the API works as before. |
+| P6 | `Metrics:Enabled = false` → no migration at startup, no polling, no cleanup. The rest of the API works as before. |
 | P7 | When the API shuts down, a running poll is cancelled. It is not saved. This is logged as **Information**, not as an error. |
 
 ## Collected values
@@ -82,9 +82,11 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 
 | Id | Rule |
 |----|------|
-| M1 | Before the first poll the service applies all missing EF Core migrations. |
-| M2 | DB not reachable → log a **Warning**, try again at the next tick. No poll and no cleanup until the migration worked. |
-| M3 | The rest of the API (e.g. HTTPRoutes endpoint) is not blocked by the migration. |
+| M1 | At startup, **before the web server starts**, the API applies all missing EF Core migrations (in `Program.cs`, before `app.Run()`). Changed by owner decision 2026-10-27. |
+| M2 | The web server (all endpoints, also `/healthz` and `/readyz`) is only reachable after the migration worked. So a "ready" pod always has the current tables. |
+| M3 | DB not reachable → log a **Warning** and try again every **5 s**, for at most `Metrics:MigrationTimeout` (default **2 min**). Then the app stops with an **Error** log and exit code ≠ 0. Kubernetes restarts the pod. |
+| M4 | Migration fails for another reason (e.g. SQL error, missing rights) → no retry. The app stops at once with an **Error** log and exit code ≠ 0. |
+| M5 | Helm: a `startupProbe` on `/healthz` waits at least `MigrationTimeout` (e.g. 30 × 5 s), so the liveness probe does not kill the pod while it waits for the DB. |
 
 ## Health endpoints
 
@@ -99,9 +101,9 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 
 | Id | Rule |
 |----|------|
-| G1 | Settings with defaults: `Metrics:Enabled` = `true`, `Metrics:Interval` = `00:00:30`, `Metrics:PollTimeout` = `00:00:20`, `Metrics:Retention` = `1.00:00:00`. |
+| G1 | Settings with defaults: `Metrics:Enabled` = `true`, `Metrics:Interval` = `00:00:30`, `Metrics:PollTimeout` = `00:00:20`, `Metrics:Retention` = `1.00:00:00`, `Metrics:MigrationTimeout` = `00:02:00`. |
 | G2 | DB settings: `MetricsDb:Host`, `Port` (default `5432`), `Database`, `Username`, `Password`, `SslMode` (default `Require`). In the cluster they come from the CNPG Secret `k8s-api-db-app`. |
-| G3 | Wrong settings stop the app at startup with a clear error (like the kubeconfig check): `Interval` < 10 s, `PollTimeout` ≥ `Interval`, `Retention` ≤ 0, or (when enabled) `Host`, `Database`, `Username` or `Password` missing. |
+| G3 | Wrong settings stop the app at startup with a clear error (like the kubeconfig check): `Interval` < 10 s, `PollTimeout` ≥ `Interval`, `Retention` ≤ 0, `MigrationTimeout` ≤ 0, or (when enabled) `Host`, `Database`, `Username` or `Password` missing. |
 | G4 | The password is never logged. |
 
 ## Logging
@@ -112,7 +114,7 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 | L2 | Failed poll → **Error** with the exception and the title from S5. |
 | L3 | DB not reachable while saving → **Error** `Metrics database not reachable` with the exception. |
 | L4 | Cleanup deleted rows → **Information** with the number of deleted snapshots. Nothing deleted → no log. |
-| L5 | Migration applied → **Information** with the migration names. Migration failed → **Warning** (M2). |
+| L5 | Migration applied → **Information** with the migration names. Each failed try while waiting for the DB → **Warning** (M3). App stops (M3, M4) → **Error** with the exception. |
 
 ## Rights (RBAC)
 
@@ -128,3 +130,4 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 2. ~~W4: owner references or label selector?~~ **Answered:** owner references (needs `replicasets`).
 3. ~~H4: `/readyz` without DB check when disabled?~~ **Answered:** yes.
 4. ~~Final OK~~ **Answered:** all rules agreed (2026-10-27).
+5. ~~M3: retry 5 s / max 2 min?~~ **Answered:** yes (2026-10-27).

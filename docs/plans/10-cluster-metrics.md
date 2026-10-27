@@ -199,9 +199,12 @@ If more replicas are needed later, add option a) (Lease) first, or data will be 
 - `DateTime` values in UTC → Postgres `timestamptz`.
 - Migrations: **Decision (owner, 2026-10-27):** the API runs them itself (`Database.MigrateAsync()`). No Helm Job.
   - This is safe because there is only 1 replica (section 5).
-  - It runs at the start of `MetricsPollingService`, before the first poll, not in `Program.cs`.
-    So the API starts and the other endpoints work even when the DB is not ready yet.
-  - If the DB is not reachable, log a warning and try again at the next tick. No poll until the migration worked.
+  - **Changed (owner decision 2026-10-27):** it runs in `Program.cs` **before** `app.Run()`, so the web server
+    and `/readyz` start only after the migration worked. A ready pod always has the current tables.
+  - If the DB is not reachable: retry every 5 s for at most 2 min (`Metrics:MigrationTimeout`), then the app stops
+    and Kubernetes restarts it. Other migration errors stop the app at once. See spec M1–M5.
+  - Side effect: while the DB is down at startup, the whole API (also HTTPRoutes) is not reachable.
+  - Helm needs a `startupProbe`, so the liveness probe does not kill the pod while it waits.
   - The CNPG `owner` user owns the database, so it has the rights to create tables.
 - Health: **Decision (owner, 2026-10-27):** a broken DB connection makes the ready endpoint return an error.
   - New endpoint `GET /readyz` (anonymous) with ASP.NET Core health checks.
