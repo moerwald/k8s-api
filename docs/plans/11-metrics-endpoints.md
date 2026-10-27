@@ -28,7 +28,7 @@ over 24 h that is ~576,000 rows (see plan 10, section 4). Use `/latest` for the 
 
 ## 2. Time range
 
-- `from` / `to` are optional. Default: `to` = now, `from` = now − 1 h.
+- `from` / `to` are optional. Default: `to` = now, `from` = now − 1 h. **Decision (owner, 2026-10-27).**
 - Only 24 h of data exist (feature 10 retention). A wider range just returns what is there.
 - `from` after `to`, or a value that is not a date → `400`.
 - Optional (later): `step=5m` to return fewer points (e.g. last value or average per 5 minutes).
@@ -98,7 +98,7 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 ## Open questions
 
 1. ~~Endpoint list ok?~~ **Answered:** yes.
-2. Default time range 1 h ok?
+2. ~~Default time range 1 h ok?~~ **Answered:** yes.
 3. Do you need `step` (fewer points) now or later?
 4. Unknown node/deployment: `200` with empty list, or `404`?
 5. Same role `k8s-api-reader`, or a new role for metrics?
