@@ -200,7 +200,7 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 
 **Decision (owner, 2026-10-27):** the cluster runs the CloudNativePG (CNPG) operator. The database is a CNPG `Cluster`.
 
-Proposal: the Helm chart of the API (feature 8) creates a small CNPG `Cluster` resource:
+**Decision (owner, 2026-10-27):** the Helm chart of the API (feature 8) creates the CNPG `Cluster`. One instance. No backups.
 
 ```yaml
 apiVersion: postgresql.cnpg.io/v1
@@ -208,7 +208,7 @@ kind: Cluster
 metadata:
   name: k8s-api-db
 spec:
-  instances: 1            # 1 day of metrics only; 2–3 for high availability
+  instances: 1            # owner decision: one instance
   storage:
     size: 2Gi
   bootstrap:
@@ -236,7 +236,10 @@ How the API gets the connection:
 Zarf (feature 9): the Postgres image (`ghcr.io/cloudnative-pg/postgresql:<version>`) must be in the Zarf package,
 because CNPG pulls it for the database pod.
 
-Backups: not needed. We keep only 1 day of data, and losing it is not critical (proposal, see open questions).
+Backups: none (owner decision). We keep only 1 day of data, and losing it is not critical.
+
+Note: with one instance, the DB is down for a short time when its pod or node restarts.
+The polling service logs the error and saves nothing in that time. The next poll works again.
 
 ## 7. Settings (proposal)
 
@@ -290,9 +293,9 @@ Backups: not needed. We keep only 1 day of data, and losing it is not critical (
 3. ~~Data model: Option A ok?~~ **Answered:** Option A.
 4. ~~How long to keep data?~~ **Answered:** max. 1 day, no long-term summaries.
 5. ~~Where does Postgres come from?~~ **Answered:** CNPG operator is in the cluster.
-   - 5a. Should our Helm chart create the CNPG `Cluster` (proposal), or does one already exist that we should use?
-   - 5b. How many instances (1 or 3)? Storage class and size?
-   - 5c. Backups needed? (proposal: no)
+   - 5a. ~~Who creates the CNPG `Cluster`?~~ **Answered:** our Helm chart.
+   - 5b. ~~How many instances?~~ **Answered:** 1. Storage class and size: Helm values (default: cluster default class, `2Gi`).
+   - 5c. ~~Backups?~~ **Answered:** no.
 6. Replicas: which option from section 5?
 7. Polling inside the API process, or a separate worker deployment?
 8. Should the API also offer REST endpoints to read the stored metrics (with the reader role)? If yes, that is a separate feature.
