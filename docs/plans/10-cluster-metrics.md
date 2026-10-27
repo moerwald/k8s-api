@@ -7,7 +7,7 @@ Status: **Not started** (all open questions answered, next: spec)
 The API reads important cluster metrics every 30 seconds and stores them in a PostgreSQL database.
 Data access uses Entity Framework Core (EF Core) with the Npgsql provider.
 
-This file is a proposal. No code is written yet. The open questions at the end must be answered first.
+No code is written yet. All open questions are answered (see the end). Next: the spec.
 
 ## 1. Which metrics
 
@@ -41,7 +41,7 @@ Start small (cluster + nodes + deployments).
 
 ## 2. Data model – options
 
-### Option A: Snapshot + typed tables (recommended)
+### Option A: Snapshot + typed tables (chosen)
 
 Each poll creates one **snapshot** row. All values of that poll point to it.
 
@@ -152,7 +152,7 @@ Why this design:
 - One poll = one DI scope = one `DbContext`. `DbContext` is not thread-safe and must not live forever.
 - A timeout per poll, so a hanging Kubernetes call does not block everything.
 - Errors are logged and saved as a snapshot with `success = false`. The loop keeps running.
-- The Kubernetes calls run in parallel (`Task.WhenAll`): nodes, node metrics, pods, deployments.
+- The Kubernetes calls run in parallel (`Task.WhenAll`): nodes, pods, deployments.
 - All values of one poll are saved with one `SaveChangesAsync` (one transaction).
 - Split the code like feature 1: `IClusterMetricsReader` (Kubernetes access, easy to fake in tests),
   `MetricsCollector` (maps data to entities and saves), `MetricsPollingService` (only the timer).
@@ -182,7 +182,7 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 
 | Option | How | Note |
 |--------|-----|------|
-| a) Kubernetes Lease (leader election) | KubernetesClient has `LeaderElector` with `LeaseLock`. Only the leader polls. | Needs RBAC on `leases`. Recommended. |
+| a) Kubernetes Lease (leader election) | KubernetesClient has `LeaderElector` with `LeaseLock`. Only the leader polls. | Needs RBAC on `leases`. For later, if more replicas are needed. |
 | b) Postgres advisory lock | `pg_try_advisory_lock` before each poll. | Simple, no extra RBAC. |
 | ~~c) Separate worker deployment~~ | Not chosen (owner decision 2026-10-27: polling runs inside the API). | |
 | **d) Only 1 replica** | Nothing to build. | **Chosen (owner decision 2026-10-27).** |
