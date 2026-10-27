@@ -1,6 +1,6 @@
 # Feature 11: REST endpoints to read stored metrics
 
-Status: **Not started** (proposal, some open questions answered)
+Status: **Not started** (all open questions answered, next: spec)
 
 ## Goal
 
@@ -39,9 +39,9 @@ The poller saves one point every 30 s. `step` puts the points into time buckets 
 
 - Works on endpoints 2–6 (cluster, nodes, node, deployments, deployment). Not on `/latest` and `/snapshots`.
 - No `step` → all points (one per 30 s).
-- Allowed values (proposal): `1m`, `5m`, `15m`, `1h`. Anything else → `400`.
+- Allowed values: `1m`, `5m`, `15m`, `1h`. Anything else → `400`. **Decision (owner, 2026-10-27).**
 - `collectedAt` of a bucket point = start of the bucket (e.g. `09:05:00Z`).
-- Value per bucket (proposal): the **last** value in the bucket. Alternatives: average or maximum.
+- Value per bucket: the **last** value in the bucket. **Decision (owner, 2026-10-27).**
 - Buckets without data (failed polls) are left out, like gaps today.
 - Grouping is done in the DB (Postgres `date_bin`), so only the bucket points are sent to the API.
 
@@ -94,7 +94,7 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 | No token / wrong role | `401` / `403` |
 | Bad `from` / `to` | `400` |
 | No snapshot yet (`/latest`) | `404` |
-| Node or deployment has no data in the range | `200` with empty `points` (proposal) or `404`? |
+| Node or deployment has no data in the range (or does not exist) | `200` with empty `points` (owner decision 2026-10-27) |
 | Database not reachable | `503` "Metrics database not reachable" |
 | Database timeout | `504` |
 
@@ -106,7 +106,7 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 
 ## 6. Steps
 
-- [ ] Owner answers the open questions
+- [x] Owner answers the open questions
 - [ ] Spec in `docs/features/11-metrics-endpoints.md` with the owner
 - [ ] Query service + endpoints (incl. `step`)
 - [ ] Tests: endpoint tests with a real Postgres (Testcontainers), auth tests
@@ -117,7 +117,7 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 1. ~~Endpoint list ok?~~ **Answered:** yes.
 2. ~~Default time range 1 h ok?~~ **Answered:** yes.
 3. ~~`step` now or later?~~ **Answered:** now (section 2a).
-   - 3a. Allowed values `1m`, `5m`, `15m`, `1h` ok?
-   - 3b. Value per bucket: last value (proposal), average, or maximum?
-4. Unknown node/deployment: `200` with empty list, or `404`?
+   - 3a. ~~Allowed values?~~ **Answered:** `1m`, `5m`, `15m`, `1h`.
+   - 3b. ~~Value per bucket?~~ **Answered:** last value.
+4. ~~Unknown node/deployment?~~ **Answered:** `200` with empty `points`.
 5. ~~Which role?~~ **Answered:** same role `k8s-api-reader`.

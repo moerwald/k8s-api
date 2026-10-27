@@ -1,6 +1,6 @@
 # Feature 10: Collect cluster metrics every 30 seconds
 
-Status: **Not started** (proposal, some open questions answered)
+Status: **Not started** (all open questions answered, next: spec)
 
 ## Goal
 
@@ -286,7 +286,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 
 ## 9. Steps
 
-- [ ] Owner answers the open questions
+- [x] Owner answers the open questions
 - [ ] Write the spec in `docs/features/10-cluster-metrics.md` with the owner
 - [ ] Add EF Core + Npgsql, `MetricsDbContext`, entities, first migration (applied by the API at startup)
 - [ ] `IClusterMetricsReader` + implementation (Kubernetes calls)
