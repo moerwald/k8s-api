@@ -1,13 +1,15 @@
 # Feature 11: REST endpoints to read stored metrics
 
-Status: **Not started** (proposal, waiting for the owner's decisions)
+Status: **Not started** (proposal, some open questions answered)
 
 ## Goal
 
 Read the metrics that feature 10 stores in Postgres via REST.
 Needs feature 10 (data model, `MetricsDbContext`).
 
-## 1. Endpoints (proposal)
+## 1. Endpoints
+
+**Decision (owner, 2026-10-27):** the endpoint list below is agreed.
 
 All endpoints: `GET`, policy `k8s-api-reader`, JSON, times in UTC (ISO 8601).
 
@@ -95,7 +97,7 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 
 ## Open questions
 
-1. Is the endpoint list ok? Anything missing or not needed?
+1. ~~Endpoint list ok?~~ **Answered:** yes.
 2. Default time range 1 h ok?
 3. Do you need `step` (fewer points) now or later?
 4. Unknown node/deployment: `200` with empty list, or `404`?
