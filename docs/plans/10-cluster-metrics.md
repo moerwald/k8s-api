@@ -1,13 +1,13 @@
 # Feature 10: Collect cluster metrics every 30 seconds
 
-Status: **Not started** (all open questions answered, next: spec)
+Status: **Not started** (plan and spec agreed, next: code after the owner's OK)
 
 ## Goal
 
 The API reads important cluster metrics every 30 seconds and stores them in a PostgreSQL database.
 Data access uses Entity Framework Core (EF Core) with the Npgsql provider.
 
-No code is written yet. All open questions are answered (see the end). Next: the spec.
+No code is written yet. Plan and [spec](../features/10-cluster-metrics.md) are agreed.
 
 ## 1. Which metrics
 
@@ -287,7 +287,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 ## 9. Steps
 
 - [x] Owner answers the open questions
-- [ ] Write the spec in `docs/features/10-cluster-metrics.md` with the owner
+- [x] Write the spec in `docs/features/10-cluster-metrics.md` with the owner (agreed 2026-10-27)
 - [ ] Add EF Core + Npgsql, `MetricsDbContext`, entities, first migration (applied by the API at startup)
 - [ ] `IClusterMetricsReader` + implementation (Kubernetes calls)
 - [ ] `MetricsCollector` (map + save)

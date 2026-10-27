@@ -1,6 +1,6 @@
 # Feature 10: Cluster metrics every 30 seconds – Specification
 
-Status: **DRAFT** – open points answered by the owner (2026-10-27). Waiting for the final OK.
+Status: **Agreed** with the owner (2026-10-27).
 
 This is the **spec** (what the feature must do). Plan and background: [plan 10](../plans/10-cluster-metrics.md).
 Tests will check these rules. Each test name starts with the rule id (for example `C3_...`).
@@ -127,4 +127,4 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 1. ~~N4: init containers?~~ **Answered:** not counted.
 2. ~~W4: owner references or label selector?~~ **Answered:** owner references (needs `replicasets`).
 3. ~~H4: `/readyz` without DB check when disabled?~~ **Answered:** yes.
-4. Final OK of all rules by the owner.
+4. ~~Final OK~~ **Answered:** all rules agreed (2026-10-27).

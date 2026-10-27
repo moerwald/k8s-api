@@ -24,7 +24,7 @@ Login with Keycloak. Install with Zarf and Helm.
 | 7 | Container image (Dockerfile) | Not started | [07](docs/plans/07-container-image.md) |
 | 8 | Helm chart | Not started | [08](docs/plans/08-helm-chart.md) |
 | 9 | Zarf package | Not started | [09](docs/plans/09-zarf-package.md) |
-| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan agreed; spec draft written, waiting for owner review) | [10](docs/plans/10-cluster-metrics.md) |
+| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan and spec agreed, code not started) | [10](docs/plans/10-cluster-metrics.md) |
 | 11 | REST endpoints to read stored metrics (needs feature 10) | Not started (all plan questions answered; next: spec) | [11](docs/plans/11-metrics-endpoints.md) |
 
 Status values: `Not started`, `In progress`, `Done`, `Blocked`.
@@ -44,7 +44,7 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 Feature 4: get the auth spec from the owner (roles, 401/403), then add auth endpoint tests.
 After that: feature 7 and 8, so the API can run in a cluster.
 
-Feature 10: spec draft in `docs/features/10-cluster-metrics.md`, open points answered. Next: final OK of the spec by the owner, then code.
+Feature 10: plan and spec (`docs/features/10-cluster-metrics.md`) agreed. Next: code, only after the owner's OK.
 Feature 11: all questions answered. Next: write the spec `docs/features/11-metrics-endpoints.md` with the owner (after feature 10).
 
 ## How to work on this repo
