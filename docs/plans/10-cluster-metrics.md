@@ -182,7 +182,7 @@ If Helm runs 2 or more replicas, every replica would poll. That gives duplicate 
 |--------|-----|------|
 | a) Kubernetes Lease (leader election) | KubernetesClient has `LeaderElector` with `LeaseLock`. Only the leader polls. | Needs RBAC on `leases`. Recommended. |
 | b) Postgres advisory lock | `pg_try_advisory_lock` before each poll. | Simple, no extra RBAC. |
-| c) Separate worker deployment | Own Deployment with `replicas: 1` and `Metrics:Enabled=true`; API pods have it off. | Clean split, one more pod. |
+| ~~c) Separate worker deployment~~ | Not chosen (owner decision 2026-10-27: polling runs inside the API). | |
 | d) Only 1 replica | Nothing to build. | Fine for the start. |
 
 ## 6. Database setup
@@ -297,6 +297,6 @@ The polling service logs the error and saves nothing in that time. The next poll
    - 5b. ~~How many instances?~~ **Answered:** 1. Storage class and size: Helm values (default: cluster default class, `2Gi`).
    - 5c. ~~Backups?~~ **Answered:** no.
 6. Replicas: which option from section 5?
-7. Polling inside the API process, or a separate worker deployment?
+7. ~~Polling inside the API or separate worker?~~ **Answered:** inside the API process (`BackgroundService`).
 8. Should the API also offer REST endpoints to read the stored metrics (with the reader role)? If yes, that is a separate feature.
 9. Should a failing DB make the pod "not ready", or only be logged?
