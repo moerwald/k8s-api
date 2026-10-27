@@ -11,7 +11,7 @@ Needs feature 10 (data model, `MetricsDbContext`).
 
 **Decision (owner, 2026-10-27):** the endpoint list below is agreed.
 
-All endpoints: `GET`, policy `k8s-api-reader`, JSON, times in UTC (ISO 8601).
+All endpoints: `GET`, policy `k8s-api-reader` (same role as feature 1, owner decision 2026-10-27), JSON, times in UTC (ISO 8601).
 
 | Endpoint | Returns |
 |----------|---------|
@@ -101,4 +101,4 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 2. ~~Default time range 1 h ok?~~ **Answered:** yes.
 3. Do you need `step` (fewer points) now or later?
 4. Unknown node/deployment: `200` with empty list, or `404`?
-5. Same role `k8s-api-reader`, or a new role for metrics?
+5. ~~Which role?~~ **Answered:** same role `k8s-api-reader`.

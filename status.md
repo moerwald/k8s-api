@@ -25,7 +25,7 @@ Login with Keycloak. Install with Zarf and Helm.
 | 8 | Helm chart | Not started | [08](docs/plans/08-helm-chart.md) |
 | 9 | Zarf package | Not started | [09](docs/plans/09-zarf-package.md) |
 | 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan: data model A, keep data 1 day, no metrics-server → requested CPU/memory, Postgres via CNPG Cluster from our Helm chart, 1 instance, no backups, polling inside the API, 1 replica, metric list agreed, API runs migrations itself, `/readyz` fails when DB is broken; all questions answered, next: spec) | [10](docs/plans/10-cluster-metrics.md) |
-| 11 | REST endpoints to read stored metrics (needs feature 10) | Not started (plan: endpoint list and default range 1 h agreed; open: step, 200/404, role) | [11](docs/plans/11-metrics-endpoints.md) |
+| 11 | REST endpoints to read stored metrics (needs feature 10) | Not started (plan: endpoint list, default range 1 h, role `k8s-api-reader` agreed; open: step, 200/404) | [11](docs/plans/11-metrics-endpoints.md) |
 
 Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
