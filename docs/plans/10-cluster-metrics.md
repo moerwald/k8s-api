@@ -9,7 +9,9 @@ Data access uses Entity Framework Core (EF Core) with the Npgsql provider.
 
 This file is a proposal. No code is written yet. The open questions at the end must be answered first.
 
-## 1. Which metrics (proposal)
+## 1. Which metrics
+
+**Decision (owner, 2026-10-27):** the list below is agreed. No StatefulSets, DaemonSets, PVCs or events for now.
 
 | Level | Metric | Source |
 |-------|--------|--------|
@@ -290,7 +292,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 
 ## Open questions
 
-1. Which metrics do you need? Is the list in section 1 right (with "requested" instead of real usage)?
+1. ~~Which metrics?~~ **Answered:** the list in section 1 is ok.
 2. ~~Is metrics-server installed?~~ **Answered:** no. We store requested CPU/memory instead of usage.
 3. ~~Data model: Option A ok?~~ **Answered:** Option A.
 4. ~~How long to keep data?~~ **Answered:** max. 1 day, no long-term summaries.
