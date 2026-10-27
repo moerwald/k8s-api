@@ -306,5 +306,5 @@ The polling service logs the error and saves nothing in that time. The next poll
    - 5c. ~~Backups?~~ **Answered:** no.
 6. ~~Replicas?~~ **Answered:** 1 replica, no leader election.
 7. ~~Polling inside the API or separate worker?~~ **Answered:** inside the API process (`BackgroundService`).
-8. Should the API also offer REST endpoints to read the stored metrics (with the reader role)? If yes, that is a separate feature.
+8. ~~REST endpoints to read the metrics?~~ **Answered:** yes. Separate feature 11, see [plan 11](11-metrics-endpoints.md).
 9. Should a failing DB make the pod "not ready", or only be logged?

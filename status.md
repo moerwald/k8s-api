@@ -24,7 +24,8 @@ Login with Keycloak. Install with Zarf and Helm.
 | 7 | Container image (Dockerfile) | Not started | [07](docs/plans/07-container-image.md) |
 | 8 | Helm chart | Not started | [08](docs/plans/08-helm-chart.md) |
 | 9 | Zarf package | Not started | [09](docs/plans/09-zarf-package.md) |
-| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan: data model A, keep data 1 day, no metrics-server → requested CPU/memory, Postgres via CNPG Cluster from our Helm chart, 1 instance, no backups, polling inside the API, 1 replica, metric list agreed, API runs migrations itself; open: REST endpoints, DB in readiness) | [10](docs/plans/10-cluster-metrics.md) |
+| 10 | Cluster metrics every 30 s into Postgres (EF Core) | Not started (plan: data model A, keep data 1 day, no metrics-server → requested CPU/memory, Postgres via CNPG Cluster from our Helm chart, 1 instance, no backups, polling inside the API, 1 replica, metric list agreed, API runs migrations itself; open: DB in readiness) | [10](docs/plans/10-cluster-metrics.md) |
+| 11 | REST endpoints to read stored metrics (needs feature 10) | Not started (plan proposed, open questions) | [11](docs/plans/11-metrics-endpoints.md) |
 
 Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 
@@ -43,7 +44,7 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 Feature 4: get the auth spec from the owner (roles, 401/403), then add auth endpoint tests.
 After that: feature 7 and 8, so the API can run in a cluster.
 
-Feature 10: the owner must answer the open questions in the plan before any code is written.
+Feature 10 and 11: the owner must answer the open questions in the plans before any code is written.
 
 ## How to work on this repo
 
