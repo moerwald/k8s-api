@@ -282,7 +282,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 ## 8. RBAC (extra rights)
 
 - `""` (core): `nodes`, `pods` → `get`, `list`
-- `apps`: `deployments` → `get`, `list`
+- `apps`: `deployments`, `replicasets` → `get`, `list` (`replicasets` to find the pods of a deployment, spec W4)
 
 ## 9. Steps
 

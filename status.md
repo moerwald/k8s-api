@@ -44,7 +44,7 @@ Status values: `Not started`, `In progress`, `Done`, `Blocked`.
 Feature 4: get the auth spec from the owner (roles, 401/403), then add auth endpoint tests.
 After that: feature 7 and 8, so the API can run in a cluster.
 
-Feature 10: spec draft in `docs/features/10-cluster-metrics.md` (not agreed yet, 3 open points). Next: owner reviews the spec.
+Feature 10: spec draft in `docs/features/10-cluster-metrics.md`, open points answered. Next: final OK of the spec by the owner, then code.
 Feature 11: all questions answered. Next: write the spec `docs/features/11-metrics-endpoints.md` with the owner (after feature 10).
 
 ## How to work on this repo

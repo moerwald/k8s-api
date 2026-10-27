@@ -1,6 +1,6 @@
 # Feature 10: Cluster metrics every 30 seconds – Specification
 
-Status: **DRAFT** – not agreed yet. Points marked **(open)** need a decision from the owner.
+Status: **DRAFT** – open points answered by the owner (2026-10-27). Waiting for the final OK.
 
 This is the **spec** (what the feature must do). Plan and background: [plan 10](../plans/10-cluster-metrics.md).
 Tests will check these rules. Each test name starts with the rule id (for example `C3_...`).
@@ -43,7 +43,7 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 | N1 | One row for each node that exists at poll time. |
 | N2 | `ready`: same rule as C2. |
 | N3 | `cpu_allocatable_millicores` and `memory_allocatable_bytes` come from `status.allocatable`. Missing value → `0`. |
-| N4 | `cpu_requested_millicores` / `memory_requested_bytes` = sum of the `resources.requests` of the **normal containers** of all pods on this node (`spec.nodeName`) with phase `Pending` or `Running`. A container without a request counts as `0`. Init containers are not counted. **(open: count init containers?)** |
+| N4 | `cpu_requested_millicores` / `memory_requested_bytes` = sum of the `resources.requests` of the **normal containers** of all pods on this node (`spec.nodeName`) with phase `Pending` or `Running`. A container without a request counts as `0`. Init containers are not counted (owner decision). |
 | N5 | `pod_count` = number of pods on this node with phase `Pending` or `Running`. |
 | N6 | Pods that are not scheduled yet (no `spec.nodeName`) are not counted for any node. They are counted in C3. |
 | N7 | Quantities are converted correctly: CPU `250m` → 250, `2` → 2000, `0.5` → 500. Memory `1Gi` → 1073741824, `500M` → 500000000, `128974848` → 128974848. CPU values are rounded **up** to whole millicores. |
@@ -55,7 +55,7 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 | W1 | One row for each Deployment in all namespaces. `kind` = `Deployment`. |
 | W2 | `desired_replicas` = `spec.replicas`. Missing → `1` (Kubernetes default). |
 | W3 | `ready_replicas` = `status.readyReplicas`, `available_replicas` = `status.availableReplicas`. Missing → `0`. |
-| W4 | `restart_count` = sum of `restartCount` of all normal containers of all pods that belong to the deployment. A pod belongs to it if its owner is a ReplicaSet whose owner is this Deployment (owner references). **(open: owner references need `list replicasets`; ok? Alternative: deployment label selector, less exact.)** |
+| W4 | `restart_count` = sum of `restartCount` of all normal containers of all pods that belong to the deployment. A pod belongs to it if its owner is a ReplicaSet whose owner is this Deployment (owner references, owner decision). |
 | W5 | A deployment without pods has `restart_count` = `0`. |
 
 ## Saving
@@ -93,7 +93,7 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 | H1 | `GET /readyz` (no login needed): DB reachable → `200`, body `Healthy`. |
 | H2 | DB not reachable → `503`, body `Unhealthy`. No error details in the body. |
 | H3 | `GET /healthz` does not change: always `200` while the process runs. No DB check. |
-| H4 | `Metrics:Enabled = false` → `/readyz` does not check the DB and returns `200`. **(open: ok?)** |
+| H4 | `Metrics:Enabled = false` → `/readyz` does not check the DB and returns `200` (owner decision). |
 
 ## Settings
 
@@ -118,13 +118,13 @@ All values come from the Kubernetes API (no metrics-server). All namespaces are 
 
 | Id | Rule |
 |----|------|
-| R1 | Extra rights: `get`, `list` on `nodes`, `pods` (core) and `deployments` (apps). |
-| R2 | If W4 uses owner references: also `get`, `list` on `replicasets` (apps). **(open)** |
+| R1 | Extra rights: `get`, `list` on `nodes`, `pods` (core) and `deployments`, `replicasets` (apps). |
+| R2 | `replicasets` is needed for W4 (pod → ReplicaSet → Deployment). |
 | R3 | A missing right makes the poll fail with `Kubernetes API access forbidden` (S5). |
 
 ## Open points
 
-1. N4: count init containers in "requested"? Proposal: no (keep it simple).
-2. W4: match pods to deployments via owner references (exact, needs `replicasets`) or label selector? Proposal: owner references.
-3. H4: `/readyz` without DB check when metrics are disabled? Proposal: yes.
-4. Any rule above that you want different?
+1. ~~N4: init containers?~~ **Answered:** not counted.
+2. ~~W4: owner references or label selector?~~ **Answered:** owner references (needs `replicasets`).
+3. ~~H4: `/readyz` without DB check when disabled?~~ **Answered:** yes.
+4. Final OK of all rules by the owner.
