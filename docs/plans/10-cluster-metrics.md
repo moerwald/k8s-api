@@ -203,7 +203,17 @@ If more replicas are needed later, add option a) (Lease) first, or data will be 
     So the API starts and the other endpoints work even when the DB is not ready yet.
   - If the DB is not reachable, log a warning and try again at the next tick. No poll until the migration worked.
   - The CNPG `owner` user owns the database, so it has the rights to create tables.
-- Health: add a DB check to the readiness probe? (see open questions)
+- Health: **Decision (owner, 2026-10-27):** a broken DB connection makes the ready endpoint return an error.
+  - New endpoint `GET /readyz` (anonymous) with ASP.NET Core health checks.
+    It checks the DB with `AddDbContextCheck<MetricsDbContext>()` (runs a small query).
+    DB ok → `200 Healthy`. DB broken → `503 Unhealthy`.
+  - `/healthz` stays as it is (no DB check) and is used for the **liveness** probe.
+    So a DB outage does not make Kubernetes restart the API pod. It only marks it "not ready".
+  - Helm: readiness probe → `/readyz`, liveness probe → `/healthz`.
+  - Effect with 1 replica: while the DB is down, the Service sends no traffic to the pod.
+    So **all** endpoints (also HTTPRoutes) are not reachable in that time. At startup the pod is
+    ready only when the DB is reachable.
+  - The answer of `/readyz` contains only the status, no error details (same rule as spec E10).
 
 ## 6a. PostgreSQL with the CNPG operator
 
@@ -283,6 +293,7 @@ The polling service logs the error and saves nothing in that time. The next poll
 - [ ] `MetricsCollector` (map + save)
 - [ ] `MetricsPollingService` (timer, timeout, error handling)
 - [ ] Retention cleanup (delete data older than 24 h)
+- [ ] `/readyz` with DB health check
 - [ ] Helm chart: `replicas: 1` (no leader election needed)
 - [ ] RBAC in `deploy/rbac.yaml` (later Helm chart, feature 8)
 - [ ] Tests (see below), README
@@ -307,4 +318,4 @@ The polling service logs the error and saves nothing in that time. The next poll
 6. ~~Replicas?~~ **Answered:** 1 replica, no leader election.
 7. ~~Polling inside the API or separate worker?~~ **Answered:** inside the API process (`BackgroundService`).
 8. ~~REST endpoints to read the metrics?~~ **Answered:** yes. Separate feature 11, see [plan 11](11-metrics-endpoints.md).
-9. Should a failing DB make the pod "not ready", or only be logged?
+9. ~~DB in readiness?~~ **Answered:** yes. `/readyz` returns `503` when the DB is broken.
