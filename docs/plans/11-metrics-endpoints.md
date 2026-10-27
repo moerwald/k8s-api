@@ -31,7 +31,24 @@ over 24 h that is ~576,000 rows (see plan 10, section 4). Use `/latest` for the 
 - `from` / `to` are optional. Default: `to` = now, `from` = now − 1 h. **Decision (owner, 2026-10-27).**
 - Only 24 h of data exist (feature 10 retention). A wider range just returns what is there.
 - `from` after `to`, or a value that is not a date → `400`.
-- Optional (later): `step=5m` to return fewer points (e.g. last value or average per 5 minutes).
+- `step` is part of this feature (owner decision 2026-10-27), see section 2a.
+
+## 2a. `step` – fewer points
+
+The poller saves one point every 30 s. `step` puts the points into time buckets and returns one point per bucket.
+
+- Works on endpoints 2–6 (cluster, nodes, node, deployments, deployment). Not on `/latest` and `/snapshots`.
+- No `step` → all points (one per 30 s).
+- Allowed values (proposal): `1m`, `5m`, `15m`, `1h`. Anything else → `400`.
+- `collectedAt` of a bucket point = start of the bucket (e.g. `09:05:00Z`).
+- Value per bucket (proposal): the **last** value in the bucket. Alternatives: average or maximum.
+- Buckets without data (failed polls) are left out, like gaps today.
+- Grouping is done in the DB (Postgres `date_bin`), so only the bucket points are sent to the API.
+
+| Range | No `step` | `step=5m` |
+|-------|-----------|-----------|
+| 1 h | 120 points | 12 points |
+| 24 h | 2,880 points | 288 points |
 
 ## 3. Answers (examples)
 
@@ -91,7 +108,7 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 
 - [ ] Owner answers the open questions
 - [ ] Spec in `docs/features/11-metrics-endpoints.md` with the owner
-- [ ] Query service + endpoints
+- [ ] Query service + endpoints (incl. `step`)
 - [ ] Tests: endpoint tests with a real Postgres (Testcontainers), auth tests
 - [ ] README
 
@@ -99,6 +116,8 @@ Failed polls have no points. A client sees them as gaps (details via `/snapshots
 
 1. ~~Endpoint list ok?~~ **Answered:** yes.
 2. ~~Default time range 1 h ok?~~ **Answered:** yes.
-3. Do you need `step` (fewer points) now or later?
+3. ~~`step` now or later?~~ **Answered:** now (section 2a).
+   - 3a. Allowed values `1m`, `5m`, `15m`, `1h` ok?
+   - 3b. Value per bucket: last value (proposal), average, or maximum?
 4. Unknown node/deployment: `200` with empty list, or `404`?
 5. ~~Which role?~~ **Answered:** same role `k8s-api-reader`.
